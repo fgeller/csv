@@ -8,7 +8,7 @@ import "bytes"
 func TestArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
     arguments := parseArguments([]string{"-f", expectedFields})
-    assert.Equal(t, arguments["fields"], expectedFields)
+    assert.Equal(t, expectedFields, arguments["fields"])
 }
 
 func TestReadingFileToStdOut(t *testing.T) {
