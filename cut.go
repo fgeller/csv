@@ -22,15 +22,18 @@ func parseArguments(arguments []string) map[string]interface{} {
 }
 
 func cut(input io.Reader, output io.Writer, arguments map[string]interface{}) {
+    reader := bufio.NewReader(input)
 
-    scanner := bufio.NewScanner(input)
-    for scanner.Scan() {
-        truncatedLine := scanner.Text()
-        io.WriteString(output, fmt.Sprintln(truncatedLine))
-    }
-
-    if err := scanner.Err(); err != nil {
-        fmt.Println(os.Stderr, "Err while reading from input:", err)
+    for {
+        line, err := reader.ReadBytes('\n')
+        io.WriteString(output, string(line))
+        if err == io.EOF {
+            break
+        }
+        if err != nil {
+            fmt.Println("Encountered error while reading:", err)
+            break
+        }
     }
 }
 
