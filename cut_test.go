@@ -1,21 +1,29 @@
 package main
 
 import "testing"
-import "github.com/stretchr/testify/assert"
 import "os"
 import "bytes"
 import "fmt"
+import "reflect"
+
+func assert(t *testing.T, expected interface{}, actual interface{}) {
+    if !reflect.DeepEqual(expected, actual) {
+        t.Error(
+            "Expected", fmt.Sprintf("[%v]", expected),
+            "Actual", fmt.Sprintf("[%v]", actual))
+    }
+}
 
 func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
     arguments := parseArguments([]string{"-f", expectedFields})
     fields := selectedFields(arguments)
-    assert.Equal(t, []int64{1, 3, 5}, fields)
+    assert(t, []int64{1, 3, 5}, fields)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
     arguments := parseArguments([]string{"-d", ","})
-    assert.Equal(t, ",", delimiter(arguments))
+    assert(t, ",", delimiter(arguments))
 }
 
 var cutTests = []struct {
