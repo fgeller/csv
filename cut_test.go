@@ -19,11 +19,13 @@ func TestFieldsArgumentParsing(t *testing.T) {
     arguments := parseArguments([]string{"-f", expectedFields})
     fields := selectedFields(arguments)
     assert(t, []int64{1, 3, 5}, fields)
+    assert(t, []int64{}, selectedFields(parseArguments([]string{})))
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
     arguments := parseArguments([]string{"-d", ","})
     assert(t, ",", delimiter(arguments))
+    assert(t, ",", delimiter(parseArguments([]string{})))
 }
 
 var cutTests = []struct {

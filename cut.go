@@ -16,8 +16,8 @@ const (
 func parseArguments(arguments []string) map[string]interface{} {
     var flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-    var fields = flags.String("f", "default", fields_message)
-    var delimiter = flags.String("d", "default", delimiter_message)
+    var fields = flags.String("f", "", fields_message)
+    var delimiter = flags.String("d", ",", delimiter_message)
 
     flags.Parse(arguments)
 
@@ -28,19 +28,21 @@ func parseArguments(arguments []string) map[string]interface{} {
 }
 
 func delimiter(arguments map[string]interface{}) string {
-    if givenDelimiter, ok := arguments["delimiter"]; ok {
-        return givenDelimiter.(string)
-    }
-
-    return "\t"
+    return arguments["delimiter"].(string)
 }
 
 func selectedFields(arguments map[string]interface{}) []int64 {
-    splits := strings.Split(arguments["fields"].(string), ",")
+    selectedFields := arguments["fields"].(string)
+    if 0 == len(selectedFields) { // TODO: why is 1 = len([]string{})
+        return []int64{}
+    }
+
+    splits := strings.Split(selectedFields, ",")
     numbers := make([]int64, len(splits))
     for idx, stringNumber := range splits {
         numbers[idx], _ = strconv.ParseInt(stringNumber, 10, 64)
     }
+
     return numbers
 }
 
