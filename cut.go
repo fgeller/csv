@@ -84,6 +84,9 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
 }
 
 func main() {
+    // defaults to , as delimiter
+    // cat when no fields selected
+
     // delimiter := delimiter(arguments)
     // selectedFields := selectedFields(arguments)
     // arguments := parseArguments(os.Args[1:])
