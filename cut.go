@@ -68,7 +68,7 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
         collectedFields := collectFields(fields, selectedFields)
 
         newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, delimiter), "\n"))
-        io.WriteString(output, newLine) // TODO check for error when writing
+        _, writeErr := io.WriteString(output, newLine)
 
         if err == io.EOF {
             break
@@ -76,6 +76,11 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
 
         if err != nil {
             fmt.Println("Encountered error while reading:", err)
+            break
+        }
+
+        if writeErr != nil {
+            fmt.Println("Encountered error while writing:", writeErr)
             break
         }
     }
