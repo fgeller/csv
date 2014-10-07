@@ -44,11 +44,9 @@ func selectedFields(arguments map[string]interface{}) []int64 {
     return numbers
 }
 
-func cut(input io.Reader, output io.Writer, arguments map[string]interface{}) {
+func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
 
     reader := bufio.NewReader(input)
-    delimiter := delimiter(arguments)
-    selectedFields := selectedFields(arguments)
 
     for {
         line, err := reader.ReadString('\n')
@@ -74,5 +72,7 @@ func cut(input io.Reader, output io.Writer, arguments map[string]interface{}) {
 }
 
 func main() {
+    // delimiter := delimiter(arguments)
+    // selectedFields := selectedFields(arguments)
     // arguments := parseArguments(os.Args[1:])
 }
