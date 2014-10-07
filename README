@@ -1,0 +1,4 @@
+Go version of cut, with CSV files in mind.
+
+ - defaults to , as delimiter
+ - cat when no fields selected
