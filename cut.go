@@ -28,8 +28,20 @@ func parseArguments(arguments []string) map[string]interface{} {
     }
 }
 
-func fileNames(arguments map[string]interface{}) []string {
-    return arguments["fileNames"].([]string)
+func files(arguments map[string]interface{}) ([]*os.File, error) {
+    fileNames := arguments["fileNames"].([]string)
+    files := make([]*os.File, len(fileNames))
+
+    for index, fileName := range fileNames {
+        file, err := os.Open(fileName)
+        if err != nil {
+            return nil, err
+        }
+
+        files[index] = file
+    }
+
+    return files, nil
 }
 
 func delimiter(arguments map[string]interface{}) string {
