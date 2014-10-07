@@ -5,10 +5,16 @@ import "github.com/stretchr/testify/assert"
 import "os"
 import "bytes"
 
-func TestArgumentParsing(t *testing.T) {
+func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
     arguments := parseArguments([]string{"-f", expectedFields})
-    assert.Equal(t, expectedFields, arguments["fields"])
+    fields := selectedFields(arguments)
+    assert.Equal(t, []int64{1, 3, 5}, fields)
+}
+
+func TestDelimiterArgumentParsing(t *testing.T) {
+    arguments := parseArguments([]string{"-d", ","})
+    assert.Equal(t, ",", delimiter(arguments))
 }
 
 func TestCopyingEntireFile(t *testing.T) {
