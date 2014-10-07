@@ -33,6 +33,14 @@ var cutTests = []struct {
     delimiter      string
     expected       string
 }{
+    { // full file when no fields
+        selectedFields: []int64{},
+        delimiter:      ",",
+        expected: `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`,
+    },
     { // full file when no delimiter
         selectedFields: []int64{1},
         delimiter:      "\t",

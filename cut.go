@@ -46,21 +46,31 @@ func selectedFields(arguments map[string]interface{}) []int64 {
     return numbers
 }
 
+func collectFields(fields []string, selectedFields []int64) []string {
+    if 0 == len(selectedFields) {
+        return fields
+    }
+
+    collectedFields := make([]string, len(selectedFields))
+    for index, fieldIndex := range selectedFields {
+        collectedFields[index] = fields[fieldIndex-1]
+    }
+    return collectedFields
+}
+
 func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
 
     reader := bufio.NewReader(input)
+    fmt.Println("selectedFields", selectedFields, len(selectedFields))
 
     for {
         line, err := reader.ReadString('\n')
         fields := strings.Split(line, delimiter)
-        collectedFields := make([]string, len(selectedFields))
 
-        for index, fieldIndex := range selectedFields {
-            collectedFields[index] = fields[fieldIndex-1]
-        }
+        collectedFields := collectFields(fields, selectedFields)
 
         newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, delimiter), "\n"))
-        io.WriteString(output, newLine)
+        io.WriteString(output, newLine) // TODO check for error when writing
 
         if err == io.EOF {
             break
