@@ -4,6 +4,7 @@ import "testing"
 import "github.com/stretchr/testify/assert"
 import "os"
 import "bytes"
+import "fmt"
 
 func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
@@ -17,72 +18,66 @@ func TestDelimiterArgumentParsing(t *testing.T) {
     assert.Equal(t, ",", delimiter(arguments))
 }
 
-func TestCopyingEntireFile(t *testing.T) {
-    fileName := "sample.csv"
-    expected := `first name,last name,favorite pet
+var cutTests = []struct {
+    selectedFields []int64
+    delimiter      string
+    expected       string
+}{
+    { // full file when no delimiter
+        selectedFields: []int64{1},
+        delimiter:      "\t",
+        expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
-`
-    input, _ := os.Open(fileName)
-    defer input.Close()
-    output := bytes.NewBuffer(nil)
-    cut(input, output, "\t", []int64{1})
-
-    assert.Equal(t, string(expected), output.String())
-}
-
-func TestCuttingFirstColumn(t *testing.T) {
-    fileName := "sample.csv"
-    expected := `first name
+`,
+    },
+    { // cutting first column
+        selectedFields: []int64{1},
+        delimiter:      ",",
+        expected: `first name
 hans
 peter
-`
-    input, _ := os.Open(fileName)
-    defer input.Close()
-    output := bytes.NewBuffer(nil)
-    cut(input, output, ",", []int64{1})
-
-    assert.Equal(t, string(expected), output.String())
-}
-
-func TestCuttingSecondColumn(t *testing.T) {
-    fileName := "sample.csv"
-    expected := `last name
+`,
+    },
+    { // cutting second column
+        selectedFields: []int64{2},
+        delimiter:      ",",
+        expected: `last name
 hansen
 petersen
-`
-    input, _ := os.Open(fileName)
-    defer input.Close()
-    output := bytes.NewBuffer(nil)
-    cut(input, output, ",", []int64{2})
-
-    assert.Equal(t, string(expected), output.String())
-}
-
-func TestCuttingThirdColumn(t *testing.T) {
-    fileName := "sample.csv"
-    expected := `favorite pet
+`,
+    },
+    { // cutting third column
+        selectedFields: []int64{3},
+        delimiter:      ",",
+        expected: `favorite pet
 moose
 monarch
-`
-    input, _ := os.Open(fileName)
-    defer input.Close()
-    output := bytes.NewBuffer(nil)
-    cut(input, output, ",", []int64{3})
-
-    assert.Equal(t, string(expected), output.String())
-}
-
-func TestCuttingFirstAndThirdColumn(t *testing.T) {
-    fileName := "sample.csv"
-    expected := `first name,favorite pet
+`,
+    },
+    { // cutting first and third column
+        selectedFields: []int64{1, 3},
+        delimiter:      ",",
+        expected: `first name,favorite pet
 hans,moose
 peter,monarch
-`
-    input, _ := os.Open(fileName)
-    defer input.Close()
-    output := bytes.NewBuffer(nil)
-    cut(input, output, ",", []int64{1, 3})
+`,
+    },
+}
 
-    assert.Equal(t, string(expected), output.String())
+func TestCut(t *testing.T) {
+    fileName := "sample.csv"
+
+    for _, data := range cutTests {
+        input, _ := os.Open(fileName)
+        defer input.Close()
+        output := bytes.NewBuffer(nil)
+        cut(input, output, data.delimiter, data.selectedFields)
+
+        if output.String() != data.expected {
+            t.Error(
+                "Expected", fmt.Sprintf("[%v]", data.expected),
+                "Actual", fmt.Sprintf("[%v]", output.String()))
+        }
+    }
 }
