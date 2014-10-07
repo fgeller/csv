@@ -104,7 +104,15 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
 }
 
 func main() {
-    // arguments := parseArguments(os.Args[1:])
-    // delimiter := delimiter(arguments)
-    // selectedFields := selectedFields(arguments)
+    arguments := parseArguments(os.Args[1:])
+    files, err := files(arguments)
+    if err != nil {
+        fmt.Println("Encountered error while opening files:", err)
+        return
+    }
+
+    for _, file := range files {
+        cut(file, os.Stdout, delimiter(arguments), selectedFields(arguments))
+    }
+
 }
