@@ -24,7 +24,12 @@ func parseArguments(arguments []string) map[string]interface{} {
     return map[string]interface{}{
         "fields":    *fields,
         "delimiter": *delimiter,
+        "fileNames": flags.Args(),
     }
+}
+
+func fileNames(arguments map[string]interface{}) []string {
+    return arguments["fileNames"].([]string)
 }
 
 func delimiter(arguments map[string]interface{}) string {

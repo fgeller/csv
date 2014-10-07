@@ -28,6 +28,12 @@ func TestDelimiterArgumentParsing(t *testing.T) {
     assert(t, ",", delimiter(parseArguments([]string{})))
 }
 
+func TestFileNameArgumentParsing(t *testing.T) {
+    arguments := parseArguments([]string{"sample1.csv", "sample2.csv"})
+    assert(t, []string{"sample1.csv", "sample2.csv"}, fileNames(arguments))
+    assert(t, []string{}, fileNames(parseArguments([]string{})))
+}
+
 var cutTests = []struct {
     selectedFields []int64
     delimiter      string
