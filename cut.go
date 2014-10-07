@@ -33,7 +33,7 @@ func delimiter(arguments map[string]interface{}) string {
 
 func selectedFields(arguments map[string]interface{}) []int64 {
     selectedFields := arguments["fields"].(string)
-    if 0 == len(selectedFields) { // TODO: why is 1 = len([]string{})
+    if 0 == len(selectedFields) {
         return []int64{}
     }
 
@@ -59,9 +59,7 @@ func collectFields(fields []string, selectedFields []int64) []string {
 }
 
 func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
-
     reader := bufio.NewReader(input)
-    fmt.Println("selectedFields", selectedFields, len(selectedFields))
 
     for {
         line, err := reader.ReadString('\n')
