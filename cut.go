@@ -18,6 +18,19 @@ type parameters struct {
     input     []*os.File
 }
 
+func openInput(fileNames []string) ([]*os.File, error) {
+    if 0 == len(fileNames) || fileNames[0] == "-" {
+        return []*os.File{os.Stdin}, nil
+    }
+
+    opened, err := openFiles(fileNames)
+    if err != nil {
+        return nil, err
+    }
+
+    return opened, nil
+}
+
 // TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
     // default values
@@ -43,15 +56,9 @@ func parseArguments(rawArguments []string) (*parameters, error) {
         }
     }
 
-    var input []*os.File
-    if 0 == len(fileNames) || fileNames[0] == "-" {
-        input = []*os.File{os.Stdin}
-    } else {
-        opened, err := openFiles(fileNames)
-        if err != nil {
-            return nil, err
-        }
-        input = opened
+    input, err := openInput(fileNames)
+    if err != nil {
+        return nil, err
     }
 
     return &parameters{
