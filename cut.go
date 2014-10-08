@@ -15,7 +15,7 @@ const (
 type parameters struct {
     fields    []int64
     delimiter string
-    files     []*os.File
+    input     []*os.File
 }
 
 // TODO: -d" "
@@ -43,15 +43,19 @@ func parseArguments(rawArguments []string) (*parameters, error) {
         }
     }
 
-    files, err := openFiles(fileNames)
+    input, err := openFiles(fileNames)
     if err != nil {
         return nil, err
+    }
+
+    if 0 == len(input) {
+        input = []*os.File{os.Stdin}
     }
 
     return &parameters{
         fields:    parseFields(fields),
         delimiter: delimiter,
-        files:     files,
+        input:     input,
     }, nil
 }
 
@@ -131,7 +135,7 @@ func cut(arguments []string, output io.Writer) {
         return
     }
 
-    for _, file := range parameters.files {
+    for _, file := range parameters.input {
         cutFile(file, output, parameters.delimiter, parameters.fields)
     }
 }

@@ -41,10 +41,10 @@ func TestDelimiterArgumentParsing(t *testing.T) {
 
 func TestFileNameArgumentParsing(t *testing.T) {
     arguments, _ := parseArguments([]string{"sample.csv"})
-    assert(t, "sample.csv", arguments.files[0].Name())
+    assert(t, "sample.csv", arguments.input[0].Name())
 
     arguments, _ = parseArguments([]string{})
-    assert(t, []*os.File{}, arguments.files)
+    assert(t, []*os.File{os.Stdin}, arguments.input)
 }
 
 var cutTests = []struct {
