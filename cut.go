@@ -124,7 +124,7 @@ func cutFile(input io.Reader, output io.Writer, delimiter string, selectedFields
     }
 }
 
-func cut(arguments []string) {
+func cut(arguments []string, output io.Writer) {
     parameters, err := parseArguments(arguments)
     if err != nil {
         fmt.Println("Invalid arguments:", err)
@@ -132,10 +132,10 @@ func cut(arguments []string) {
     }
 
     for _, file := range parameters.files {
-        cutFile(file, os.Stdout, parameters.delimiter, parameters.fields)
+        cutFile(file, output, parameters.delimiter, parameters.fields)
     }
 }
 
 func main() {
-    cut(os.Args[1:])
+    cut(os.Args[1:], os.Stdout)
 }

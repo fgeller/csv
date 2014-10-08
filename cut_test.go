@@ -117,3 +117,35 @@ func TestCutFile(t *testing.T) {
         }
     }
 }
+
+func TestCut(t *testing.T) {
+    fileName := "sample.csv"
+    contents := `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`
+
+    input, _ := os.Open(fileName)
+    defer input.Close()
+    output := bytes.NewBuffer(nil)
+
+    cut([]string{fileName}, output)
+
+    assert(t, string(contents), output.String())
+}
+
+func TestCuttingMultipleFiles(t *testing.T) {
+    fileName := "sample.csv"
+    contents := `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`
+
+    input, _ := os.Open(fileName)
+    defer input.Close()
+    output := bytes.NewBuffer(nil)
+
+    cut([]string{fileName, fileName}, output)
+
+    assert(t, fmt.Sprint(string(contents), string(contents)), output.String())
+}
