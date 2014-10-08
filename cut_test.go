@@ -19,13 +19,13 @@ func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
 
     arguments, _ := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
-    assert(t, []int64{1, 3, 5}, arguments.ranges)
+    assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{"-f", expectedFields})
-    assert(t, []int64{1, 3, 5}, arguments.ranges)
+    assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{})
-    assert(t, []int64{}, arguments.ranges)
+    assert(t, []*Range{}, arguments.ranges)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
@@ -51,53 +51,53 @@ func TestFileNameArgumentParsing(t *testing.T) {
 }
 
 var cutTests = []struct {
-    selectedFields []int64
-    delimiter      string
-    expected       string
+    ranges    []*Range
+    delimiter string
+    expected  string
 }{
     { // full file when no fields
-        selectedFields: []int64{},
-        delimiter:      ",",
+        ranges:    []*Range{},
+        delimiter: ",",
         expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
     },
     { // full file when no delimiter
-        selectedFields: []int64{1},
-        delimiter:      "\t",
+        ranges:    []*Range{&Range{start: 1}},
+        delimiter: `\t`,
         expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
     },
     { // cutting first column
-        selectedFields: []int64{1},
-        delimiter:      ",",
+        ranges:    []*Range{&Range{start: 1}},
+        delimiter: ",",
         expected: `first name
 hans
 peter
 `,
     },
     { // cutting second column
-        selectedFields: []int64{2},
-        delimiter:      ",",
+        ranges:    []*Range{&Range{start: 2}},
+        delimiter: ",",
         expected: `last name
 hansen
 petersen
 `,
     },
     { // cutting third column
-        selectedFields: []int64{3},
-        delimiter:      ",",
+        ranges:    []*Range{&Range{start: 3}},
+        delimiter: ",",
         expected: `favorite pet
 moose
 monarch
 `,
     },
     { // cutting first and third column
-        selectedFields: []int64{1, 3},
-        delimiter:      ",",
+        ranges:    []*Range{&Range{start: 1}, &Range{start: 3}},
+        delimiter: ",",
         expected: `first name,favorite pet
 hans,moose
 peter,monarch
@@ -112,7 +112,7 @@ func TestCutFile(t *testing.T) {
         input, _ := os.Open(fileName)
         defer input.Close()
         output := bytes.NewBuffer(nil)
-        cutFile(input, output, data.delimiter, data.selectedFields)
+        cutFile(input, output, data.delimiter, data.ranges)
 
         assert(t, output.String(), data.expected)
     }

@@ -12,8 +12,14 @@ const (
     delimiter_message string = "custom delimiter"
 )
 
+// mhh... how to resolve naming conflict?
+type Range struct {
+    start int
+    end   int
+}
+
 type parameters struct {
-    ranges    []int64
+    ranges    []*Range
     delimiter string
     input     []*os.File
 }
@@ -34,7 +40,7 @@ func openInput(fileNames []string) ([]*os.File, error) {
 // TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
     // default values
-    fields := ""
+    ranges := ""
     delimiter := ","
     fileNames := []string{}
 
@@ -42,10 +48,10 @@ func parseArguments(rawArguments []string) (*parameters, error) {
         argument := rawArguments[index]
         switch {
         case argument == "-f":
-            fields = rawArguments[index+1]
+            ranges = rawArguments[index+1]
             index += 1
         case strings.HasPrefix(argument, "-f"):
-            fields = argument[2:]
+            ranges = argument[2:]
         case argument == "-d":
             delimiter = rawArguments[index+1]
             index += 1
@@ -62,7 +68,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
     }
 
     return &parameters{
-        ranges:    parseFields(fields),
+        ranges:    parseRanges(ranges),
         delimiter: delimiter,
         input:     input,
     }, nil
@@ -83,6 +89,22 @@ func openFiles(fileNames []string) ([]*os.File, error) {
     return files, nil
 }
 
+func parseRanges(rawRanges string) []*Range {
+    if 0 == len(rawRanges) {
+        return []*Range{}
+    }
+
+    splits := strings.Split(rawRanges, ",")
+    ranges := make([]*Range, 0)
+
+    for _, split := range splits {
+        number, _ := strconv.ParseInt(split, 10, 32)
+        ranges = append(ranges, &Range{start: int(number)})
+    }
+
+    return ranges
+}
+
 func parseFields(selectedFields string) []int64 {
     if 0 == len(selectedFields) {
         return []int64{}
@@ -97,26 +119,32 @@ func parseFields(selectedFields string) []int64 {
     return numbers
 }
 
-func collectFields(fields []string, selectedFields []int64) []string {
-    if 0 == len(selectedFields) {
+func collectFields(fields []string, ranges []*Range) []string {
+    if 0 == len(ranges) {
         return fields
     }
 
-    collectedFields := make([]string, len(selectedFields))
-    for index, fieldIndex := range selectedFields {
-        collectedFields[index] = fields[fieldIndex-1]
+    collectedFields := make([]string, 0)
+    for _, aRange := range ranges {
+        index := aRange.start
+        if index == -1 { // hacky hack
+            return fields
+        }
+        field := fields[index-1]
+        collectedFields = append(collectedFields, field)
     }
     return collectedFields
 }
 
-func cutFile(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
+// TODO take param with modes
+func cutFile(input io.Reader, output io.Writer, delimiter string, ranges []*Range) {
     reader := bufio.NewReader(input)
 
     for {
         line, err := reader.ReadString('\n')
         fields := strings.Split(line, delimiter)
 
-        collectedFields := collectFields(fields, selectedFields)
+        collectedFields := collectFields(fields, ranges)
 
         newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, delimiter), "\n"))
         _, writeErr := io.WriteString(output, newLine)
