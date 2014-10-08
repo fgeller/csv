@@ -17,33 +17,33 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
 
-    arguments := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
-    fields := selectedFields(arguments)
-    assert(t, []int64{1, 3, 5}, fields)
+    arguments, _ := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
+    assert(t, []int64{1, 3, 5}, arguments.fields)
 
-    arguments = parseArguments([]string{"-f", expectedFields})
-    fields = selectedFields(arguments)
-    assert(t, []int64{1, 3, 5}, fields)
+    arguments, _ = parseArguments([]string{"-f", expectedFields})
+    assert(t, []int64{1, 3, 5}, arguments.fields)
 
-    assert(t, []int64{}, selectedFields(parseArguments([]string{})))
+    arguments, _ = parseArguments([]string{})
+    assert(t, []int64{}, arguments.fields)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
-    arguments := parseArguments([]string{"-d", ","})
-    assert(t, ",", delimiter(arguments))
+    arguments, _ := parseArguments([]string{"-d", ","})
+    assert(t, ",", arguments.delimiter)
 
-    arguments = parseArguments([]string{"-d,"})
-    assert(t, ",", delimiter(arguments))
+    arguments, _ = parseArguments([]string{"-d,"})
+    assert(t, ",", arguments.delimiter)
 
-    assert(t, ",", delimiter(parseArguments([]string{})))
+    arguments, _ = parseArguments([]string{})
+    assert(t, ",", arguments.delimiter)
 }
 
 func TestFileNameArgumentParsing(t *testing.T) {
-    arguments := parseArguments([]string{"sample.csv"})
-    actual, _ := files(arguments)
-    assert(t, "sample.csv", actual[0].Name())
-    actual, _ = files(parseArguments([]string{}))
-    assert(t, []*os.File{}, actual)
+    arguments, _ := parseArguments([]string{"sample.csv"})
+    assert(t, "sample.csv", arguments.files[0].Name())
+
+    arguments, _ = parseArguments([]string{})
+    assert(t, []*os.File{}, arguments.files)
 }
 
 var cutTests = []struct {

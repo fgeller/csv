@@ -12,22 +12,28 @@ const (
     delimiter_message string = "custom delimiter"
 )
 
-func parseArguments(arguments []string) map[string]interface{} {
+type parameters struct {
+    fields    []int64
+    delimiter string
+    files     []*os.File
+}
+
+func parseArguments(rawArguments []string) (*parameters, error) {
     // default values
     fields := ""
     delimiter := ","
     fileNames := []string{}
 
-    for index := 0; index < len(arguments); index += 1 {
-        argument := arguments[index]
+    for index := 0; index < len(rawArguments); index += 1 {
+        argument := rawArguments[index]
         switch {
         case argument == "-f":
-            fields = arguments[index+1]
+            fields = rawArguments[index+1]
             index += 1
         case strings.HasPrefix(argument, "-f"):
             fields = argument[2:]
         case argument == "-d":
-            delimiter = arguments[index+1]
+            delimiter = rawArguments[index+1]
             index += 1
         case strings.HasPrefix(argument, "-d"):
             delimiter = argument[2:]
@@ -36,15 +42,19 @@ func parseArguments(arguments []string) map[string]interface{} {
         }
     }
 
-    return map[string]interface{}{
-        "fields":    fields,
-        "delimiter": delimiter,
-        "fileNames": fileNames,
+    files, err := openFiles(fileNames)
+    if err != nil {
+        return nil, err
     }
+
+    return &parameters{
+        fields:    parseFields(fields),
+        delimiter: delimiter,
+        files:     files,
+    }, nil
 }
 
-func files(arguments map[string]interface{}) ([]*os.File, error) {
-    fileNames := arguments["fileNames"].([]string)
+func openFiles(fileNames []string) ([]*os.File, error) {
     files := make([]*os.File, len(fileNames))
 
     for index, fileName := range fileNames {
@@ -59,12 +69,7 @@ func files(arguments map[string]interface{}) ([]*os.File, error) {
     return files, nil
 }
 
-func delimiter(arguments map[string]interface{}) string {
-    return arguments["delimiter"].(string)
-}
-
-func selectedFields(arguments map[string]interface{}) []int64 {
-    selectedFields := arguments["fields"].(string)
+func parseFields(selectedFields string) []int64 {
     if 0 == len(selectedFields) {
         return []int64{}
     }
@@ -119,15 +124,14 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
 }
 
 func main() {
-    arguments := parseArguments(os.Args[1:])
-    files, err := files(arguments)
+    arguments, err := parseArguments(os.Args[1:])
     if err != nil {
-        fmt.Println("Encountered error while opening files:", err)
+        fmt.Println("Invalid arguments:", err)
         return
     }
 
-    for _, file := range files {
-        cut(file, os.Stdout, delimiter(arguments), selectedFields(arguments))
+    for _, file := range arguments.files {
+        cut(file, os.Stdout, arguments.delimiter, arguments.fields)
     }
 
 }
