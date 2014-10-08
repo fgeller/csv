@@ -10,6 +10,7 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
     if !reflect.DeepEqual(expected, actual) {
         t.Error(
             "Expected", fmt.Sprintf("[%v]", expected),
+            "\n",
             "Actual", fmt.Sprintf("[%v]", actual))
     }
 }
@@ -110,11 +111,7 @@ func TestCutFile(t *testing.T) {
         output := bytes.NewBuffer(nil)
         cutFile(input, output, data.delimiter, data.selectedFields)
 
-        if output.String() != data.expected {
-            t.Error(
-                "Expected", fmt.Sprintf("[%v]", data.expected),
-                "Actual", fmt.Sprintf("[%v]", output.String()))
-        }
+        assert(t, output.String(), data.expected)
     }
 }
 
