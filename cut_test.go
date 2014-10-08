@@ -45,6 +45,9 @@ func TestFileNameArgumentParsing(t *testing.T) {
 
     arguments, _ = parseArguments([]string{})
     assert(t, []*os.File{os.Stdin}, arguments.input)
+
+    arguments, _ = parseArguments([]string{"-"})
+    assert(t, []*os.File{os.Stdin}, arguments.input)
 }
 
 var cutTests = []struct {

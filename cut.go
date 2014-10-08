@@ -43,13 +43,15 @@ func parseArguments(rawArguments []string) (*parameters, error) {
         }
     }
 
-    input, err := openFiles(fileNames)
-    if err != nil {
-        return nil, err
-    }
-
-    if 0 == len(input) {
+    var input []*os.File
+    if 0 == len(fileNames) || fileNames[0] == "-" {
         input = []*os.File{os.Stdin}
+    } else {
+        opened, err := openFiles(fileNames)
+        if err != nil {
+            return nil, err
+        }
+        input = opened
     }
 
     return &parameters{
