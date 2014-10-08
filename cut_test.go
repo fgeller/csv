@@ -19,13 +19,13 @@ func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
 
     arguments, _ := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
-    assert(t, []int64{1, 3, 5}, arguments.fields)
+    assert(t, []int64{1, 3, 5}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{"-f", expectedFields})
-    assert(t, []int64{1, 3, 5}, arguments.fields)
+    assert(t, []int64{1, 3, 5}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{})
-    assert(t, []int64{}, arguments.fields)
+    assert(t, []int64{}, arguments.ranges)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {

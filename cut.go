@@ -13,7 +13,7 @@ const (
 )
 
 type parameters struct {
-    fields    []int64
+    ranges    []int64
     delimiter string
     input     []*os.File
 }
@@ -62,7 +62,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
     }
 
     return &parameters{
-        fields:    parseFields(fields),
+        ranges:    parseFields(fields),
         delimiter: delimiter,
         input:     input,
     }, nil
@@ -145,7 +145,7 @@ func cut(arguments []string, output io.Writer) {
     }
 
     for _, file := range parameters.input {
-        cutFile(file, output, parameters.delimiter, parameters.fields)
+        cutFile(file, output, parameters.delimiter, parameters.ranges)
     }
 }
 
