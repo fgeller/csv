@@ -18,6 +18,7 @@ type parameters struct {
     files     []*os.File
 }
 
+// TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
     // default values
     fields := ""
