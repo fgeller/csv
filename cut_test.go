@@ -16,15 +16,25 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 
 func TestFieldsArgumentParsing(t *testing.T) {
     expectedFields := "1,3,5"
-    arguments := parseArguments([]string{"-f", expectedFields})
+
+    arguments := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
     fields := selectedFields(arguments)
     assert(t, []int64{1, 3, 5}, fields)
+
+    arguments = parseArguments([]string{"-f", expectedFields})
+    fields = selectedFields(arguments)
+    assert(t, []int64{1, 3, 5}, fields)
+
     assert(t, []int64{}, selectedFields(parseArguments([]string{})))
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
     arguments := parseArguments([]string{"-d", ","})
     assert(t, ",", delimiter(arguments))
+
+    arguments = parseArguments([]string{"-d,"})
+    assert(t, ",", delimiter(arguments))
+
     assert(t, ",", delimiter(parseArguments([]string{})))
 }
 

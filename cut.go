@@ -1,6 +1,5 @@
 package main
 
-import "flag"
 import "os"
 import "fmt"
 import "bufio"
@@ -14,17 +13,33 @@ const (
 )
 
 func parseArguments(arguments []string) map[string]interface{} {
-    var flags = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+    // default values
+    fields := ""
+    delimiter := ","
+    fileNames := []string{}
 
-    var fields = flags.String("f", "", fields_message)
-    var delimiter = flags.String("d", ",", delimiter_message)
-
-    flags.Parse(arguments)
+    for index := 0; index < len(arguments); index += 1 {
+        argument := arguments[index]
+        switch {
+        case argument == "-f":
+            fields = arguments[index+1]
+            index += 1
+        case strings.HasPrefix(argument, "-f"):
+            fields = argument[2:]
+        case argument == "-d":
+            delimiter = arguments[index+1]
+            index += 1
+        case strings.HasPrefix(argument, "-d"):
+            delimiter = argument[2:]
+        case true:
+            fileNames = append(fileNames, argument)
+        }
+    }
 
     return map[string]interface{}{
-        "fields":    *fields,
-        "delimiter": *delimiter,
-        "fileNames": flags.Args(),
+        "fields":    fields,
+        "delimiter": delimiter,
+        "fileNames": fileNames,
     }
 }
 
