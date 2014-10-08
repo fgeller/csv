@@ -96,7 +96,7 @@ func collectFields(fields []string, selectedFields []int64) []string {
     return collectedFields
 }
 
-func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
+func cutFile(input io.Reader, output io.Writer, delimiter string, selectedFields []int64) {
     reader := bufio.NewReader(input)
 
     for {
@@ -124,15 +124,18 @@ func cut(input io.Reader, output io.Writer, delimiter string, selectedFields []i
     }
 }
 
-func main() {
-    arguments, err := parseArguments(os.Args[1:])
+func cut(arguments []string) {
+    parameters, err := parseArguments(arguments)
     if err != nil {
         fmt.Println("Invalid arguments:", err)
         return
     }
 
-    for _, file := range arguments.files {
-        cut(file, os.Stdout, arguments.delimiter, arguments.fields)
+    for _, file := range parameters.files {
+        cutFile(file, os.Stdout, parameters.delimiter, parameters.fields)
     }
+}
 
+func main() {
+    cut(os.Args[1:])
 }

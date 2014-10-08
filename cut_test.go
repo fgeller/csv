@@ -101,14 +101,14 @@ peter,monarch
     },
 }
 
-func TestCut(t *testing.T) {
+func TestCutFile(t *testing.T) {
     fileName := "sample.csv"
 
     for _, data := range cutTests {
         input, _ := os.Open(fileName)
         defer input.Close()
         output := bytes.NewBuffer(nil)
-        cut(input, output, data.delimiter, data.selectedFields)
+        cutFile(input, output, data.delimiter, data.selectedFields)
 
         if output.String() != data.expected {
             t.Error(
