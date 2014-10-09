@@ -102,35 +102,28 @@ func parseInt(raw string) int32 {
     return int32(number)
 }
 
+func parseRange(raw string) Range {
+    splitPosition := strings.Index(raw, "-")
+
+    if splitPosition == -1 {
+        number := parseInt(raw)
+        return NewRange(number, number)
+    }
+
+    lower := raw[:splitPosition]
+    upper := raw[splitPosition+1:]
+
+    return NewRange(parseInt(lower), parseInt(upper))
+}
+
 func parseRanges(rawRanges string) []Range {
     if 0 == len(rawRanges) {
         return []Range{}
     }
 
-    rangeSplits := strings.Split(rawRanges, ",")
     ranges := make([]Range, 0)
-
-    for _, aRange := range rangeSplits {
-        splitPosition := strings.Index(aRange, "-")
-
-        if splitPosition != -1 {
-            lower := aRange[:splitPosition]
-            upper := aRange[splitPosition+1:]
-
-            switch {
-            case len(lower) == 0:
-                ranges = append(ranges, NewRange(-1, parseInt(upper)))
-
-            case len(upper) == 0:
-                ranges = append(ranges, NewRange(parseInt(lower), -1))
-
-            case true:
-                ranges = append(ranges, NewRange(parseInt(lower), parseInt(upper)))
-            }
-        } else {
-            number := parseInt(aRange)
-            ranges = append(ranges, NewRange(number, number))
-        }
+    for _, raw := range strings.Split(rawRanges, ",") {
+        ranges = append(ranges, parseRange(raw))
     }
 
     return ranges
