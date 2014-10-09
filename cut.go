@@ -14,12 +14,20 @@ const (
 
 // mhh... how to resolve naming conflict?
 type Range struct {
-    start int
-    end   int
+    start int32
+    end   int32
+}
+
+func (r Range) String() string {
+    return fmt.Sprintf("Range(%v, %v)", r.start, r.end)
+}
+
+func NewRange(start int32, end int32) Range {
+    return Range{start: start, end: end}
 }
 
 type parameters struct {
-    ranges    []*Range
+    ranges    []Range
     delimiter string
     input     []*os.File
 }
@@ -89,23 +97,46 @@ func openFiles(fileNames []string) ([]*os.File, error) {
     return files, nil
 }
 
-func parseRanges(rawRanges string) []*Range {
+func parseInt(raw string) int32 {
+    number, _ := strconv.ParseInt(raw, 10, 32)
+    return int32(number)
+}
+
+func parseRanges(rawRanges string) []Range {
     if 0 == len(rawRanges) {
-        return []*Range{}
+        return []Range{}
     }
 
-    splits := strings.Split(rawRanges, ",")
-    ranges := make([]*Range, 0)
+    rangeSplits := strings.Split(rawRanges, ",")
+    ranges := make([]Range, 0)
 
-    for _, split := range splits {
-        number, _ := strconv.ParseInt(split, 10, 32)
-        ranges = append(ranges, &Range{start: int(number)})
+    for _, aRange := range rangeSplits {
+        splitPosition := strings.Index(aRange, "-")
+
+        if splitPosition != -1 {
+            lower := aRange[:splitPosition]
+            upper := aRange[splitPosition+1:]
+
+            switch {
+            case len(lower) == 0:
+                ranges = append(ranges, NewRange(-1, parseInt(upper)))
+
+            case len(upper) == 0:
+                ranges = append(ranges, NewRange(parseInt(lower), -1))
+
+            case true:
+                ranges = append(ranges, NewRange(parseInt(lower), parseInt(upper)))
+            }
+        } else {
+            number := parseInt(aRange)
+            ranges = append(ranges, NewRange(number, number))
+        }
     }
 
     return ranges
 }
 
-func collectFields(fields []string, ranges []*Range) []string {
+func collectFields(fields []string, ranges []Range) []string {
     if 0 == len(ranges) {
         return fields
     }
@@ -123,7 +154,7 @@ func collectFields(fields []string, ranges []*Range) []string {
 }
 
 // TODO take param with modes
-func cutFile(input io.Reader, output io.Writer, delimiter string, ranges []*Range) {
+func cutFile(input io.Reader, output io.Writer, delimiter string, ranges []Range) {
     reader := bufio.NewReader(input)
 
     for {

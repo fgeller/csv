@@ -17,13 +17,31 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 
 func TestFieldsArgumentParsing(t *testing.T) {
     arguments, _ := parseArguments([]string{fmt.Sprint("-f", "1,3,5")})
-    assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
+    assert(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{"-f", "1,3,5"})
-    assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
+    assert(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{})
-    assert(t, []*Range{}, arguments.ranges)
+    assert(t, []Range{}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "1-3"})
+    assert(t, []Range{NewRange(1, 3)}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "1-"})
+    assert(t, []Range{NewRange(1, -1)}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "1"})
+    assert(t, []Range{NewRange(1, 1)}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "-23"})
+    assert(t, []Range{NewRange(-1, 23)}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "1-3,5"})
+    assert(t, []Range{NewRange(1, 3), NewRange(5, 5)}, arguments.ranges)
+
+    arguments, _ = parseArguments([]string{"-f", "1-3,-5,23,42-"})
+    assert(t, []Range{NewRange(1, 3), NewRange(-1, 5), NewRange(23, 23), NewRange(42, -1)}, arguments.ranges)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
@@ -49,12 +67,12 @@ func TestFileNameArgumentParsing(t *testing.T) {
 }
 
 var cutTests = []struct {
-    ranges    []*Range
+    ranges    []Range
     delimiter string
     expected  string
 }{
     { // full file when no fields
-        ranges:    []*Range{},
+        ranges:    []Range{},
         delimiter: ",",
         expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -62,7 +80,7 @@ peter,petersen,monarch
 `,
     },
     { // full file when no delimiter
-        ranges:    []*Range{&Range{start: 1}},
+        ranges:    []Range{NewRange(1, -1)},
         delimiter: `\t`,
         expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -70,7 +88,7 @@ peter,petersen,monarch
 `,
     },
     { // cutting first column
-        ranges:    []*Range{&Range{start: 1}},
+        ranges:    []Range{NewRange(1, -1)},
         delimiter: ",",
         expected: `first name
 hans
@@ -78,7 +96,7 @@ peter
 `,
     },
     { // cutting second column
-        ranges:    []*Range{&Range{start: 2}},
+        ranges:    []Range{NewRange(2, -1)},
         delimiter: ",",
         expected: `last name
 hansen
@@ -86,7 +104,7 @@ petersen
 `,
     },
     { // cutting third column
-        ranges:    []*Range{&Range{start: 3}},
+        ranges:    []Range{NewRange(3, -1)},
         delimiter: ",",
         expected: `favorite pet
 moose
@@ -94,7 +112,7 @@ monarch
 `,
     },
     { // cutting first and third column
-        ranges:    []*Range{&Range{start: 1}, &Range{start: 3}},
+        ranges:    []Range{NewRange(1, -1), NewRange(3, -1)},
         delimiter: ",",
         expected: `first name,favorite pet
 hans,moose
