@@ -14,15 +14,27 @@ const (
 
 // mhh... how to resolve naming conflict?
 type Range struct {
-    start int32
-    end   int32
+    start int
+    end   int
+}
+
+func (r Range) Contains(number int) bool {
+    switch {
+    case r.start == 0 && number <= r.end:
+        return true
+    case r.end == 0 && r.start <= number:
+        return true
+    case r.start <= number && number <= r.end:
+        return true
+    }
+    return false
 }
 
 func (r Range) String() string {
     return fmt.Sprintf("Range(%v, %v)", r.start, r.end)
 }
 
-func NewRange(start int32, end int32) Range {
+func NewRange(start int, end int) Range {
     return Range{start: start, end: end}
 }
 
@@ -97,9 +109,9 @@ func openFiles(fileNames []string) ([]*os.File, error) {
     return files, nil
 }
 
-func parseInt(raw string) int32 {
+func parseInt(raw string) int {
     number, _ := strconv.ParseInt(raw, 10, 32)
-    return int32(number)
+    return int(number)
 }
 
 func parseRange(raw string) Range {
@@ -129,20 +141,30 @@ func parseRanges(rawRanges string) []Range {
     return ranges
 }
 
-func collectFields(fields []string, ranges []Range) []string {
-    if 0 == len(ranges) {
+// TODO: can we do this lazily?
+func selectedFields(ranges []Range, total int) []int {
+    selected := make([]int, 0)
+    for field := 1; field <= total; field += 1 {
+        for _, aRange := range ranges {
+            if aRange.Contains(field) {
+                selected = append(selected, field)
+            }
+        }
+    }
+
+    return selected
+}
+
+func collectFields(fields []string, selected []int) []string {
+    if 0 == len(selected) {
         return fields
     }
 
-    collectedFields := make([]string, 0)
-    for _, aRange := range ranges {
-        index := aRange.start
-        if index == -1 { // hacky hack
-            return fields
-        }
-        field := fields[index-1]
-        collectedFields = append(collectedFields, field)
+    collectedFields := make([]string, len(selected))
+    for index, selectedField := range selected {
+        collectedFields[index] = fields[selectedField-1]
     }
+
     return collectedFields
 }
 
@@ -154,7 +176,8 @@ func cutFile(input io.Reader, output io.Writer, delimiter string, ranges []Range
         line, err := reader.ReadString('\n')
         fields := strings.Split(line, delimiter)
 
-        collectedFields := collectFields(fields, ranges)
+        selected := selectedFields(ranges, len(fields))
+        collectedFields := collectFields(fields, selected)
 
         newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, delimiter), "\n"))
         _, writeErr := io.WriteString(output, newLine)

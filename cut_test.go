@@ -80,7 +80,7 @@ peter,petersen,monarch
 `,
     },
     { // full file when no delimiter
-        ranges:    []Range{NewRange(1, 0)},
+        ranges:    []Range{NewRange(1, 1)},
         delimiter: `\t`,
         expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -88,7 +88,7 @@ peter,petersen,monarch
 `,
     },
     { // cutting first column
-        ranges:    []Range{NewRange(1, 0)},
+        ranges:    []Range{NewRange(1, 1)},
         delimiter: ",",
         expected: `first name
 hans
@@ -96,7 +96,7 @@ peter
 `,
     },
     { // cutting second column
-        ranges:    []Range{NewRange(2, 0)},
+        ranges:    []Range{NewRange(2, 2)},
         delimiter: ",",
         expected: `last name
 hansen
@@ -104,7 +104,7 @@ petersen
 `,
     },
     { // cutting third column
-        ranges:    []Range{NewRange(3, 0)},
+        ranges:    []Range{NewRange(3, 3)},
         delimiter: ",",
         expected: `favorite pet
 moose
@@ -112,11 +112,35 @@ monarch
 `,
     },
     { // cutting first and third column
-        ranges:    []Range{NewRange(1, 0), NewRange(3, 0)},
+        ranges:    []Range{NewRange(1, 1), NewRange(3, 3)},
         delimiter: ",",
         expected: `first name,favorite pet
 hans,moose
 peter,monarch
+`,
+    },
+    { // cutting first and second column via range
+        ranges:    []Range{NewRange(1, 2)},
+        delimiter: ",",
+        expected: `first name,last name
+hans,hansen
+peter,petersen
+`,
+    },
+    { // cutting all via a range
+        ranges:    []Range{NewRange(1, 0)},
+        delimiter: ",",
+        expected: `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`,
+    },
+    { // cutting all via a range
+        ranges:    []Range{NewRange(0, 3)},
+        delimiter: ",",
+        expected: `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
 `,
     },
 }
@@ -128,6 +152,7 @@ func TestCutFile(t *testing.T) {
         input, _ := os.Open(fileName)
         defer input.Close()
         output := bytes.NewBuffer(nil)
+
         cutFile(input, output, data.delimiter, data.ranges)
 
         assert(t, output.String(), data.expected)
