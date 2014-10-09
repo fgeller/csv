@@ -16,12 +16,10 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 }
 
 func TestFieldsArgumentParsing(t *testing.T) {
-    expectedFields := "1,3,5"
-
-    arguments, _ := parseArguments([]string{fmt.Sprint("-f", expectedFields)})
+    arguments, _ := parseArguments([]string{fmt.Sprint("-f", "1,3,5")})
     assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
 
-    arguments, _ = parseArguments([]string{"-f", expectedFields})
+    arguments, _ = parseArguments([]string{"-f", "1,3,5"})
     assert(t, []*Range{&Range{start: 1}, &Range{start: 3}, &Range{start: 5}}, arguments.ranges)
 
     arguments, _ = parseArguments([]string{})
