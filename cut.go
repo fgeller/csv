@@ -144,10 +144,12 @@ func parseRanges(rawRanges string) []Range {
 // TODO: can we do this lazily?
 func selectedFields(ranges []Range, total int) []int {
     selected := make([]int, 0)
+outer:
     for field := 1; field <= total; field += 1 {
         for _, aRange := range ranges {
             if aRange.Contains(field) {
                 selected = append(selected, field)
+                continue outer
             }
         }
     }

@@ -143,6 +143,14 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
     },
+    { // cutting all via a range
+        ranges:    []Range{NewRange(1, 3), NewRange(3, 3)},
+        delimiter: ",",
+        expected: `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`,
+    },
 }
 
 func TestCutFile(t *testing.T) {
