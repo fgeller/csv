@@ -105,20 +105,6 @@ func parseRanges(rawRanges string) []*Range {
     return ranges
 }
 
-func parseFields(selectedFields string) []int64 {
-    if 0 == len(selectedFields) {
-        return []int64{}
-    }
-
-    splits := strings.Split(selectedFields, ",")
-    numbers := make([]int64, len(splits))
-    for idx, stringNumber := range splits {
-        numbers[idx], _ = strconv.ParseInt(stringNumber, 10, 64)
-    }
-
-    return numbers
-}
-
 func collectFields(fields []string, ranges []*Range) []string {
     if 0 == len(ranges) {
         return fields
