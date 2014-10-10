@@ -329,25 +329,6 @@ func cut(arguments []string, output io.Writer) {
 	}
 }
 
-// -b, --bytes=LIST
-//        select only these bytes
-// -c, --characters=LIST
-//        select only these characters
-// -d, --delimiter=DELIM
-//        use DELIM instead of TAB for field delimiter
-// -f, --fields=LIST
-//        select only these fields;  also print any line that contains no delimiter character, unless the -s option is specified
-// -n     (ignored)
-// --complement
-//        complement the set of selected bytes, characters or fields
-// -s, --only-delimited
-//        do not print lines not containing delimiters
-// --output-delimiter=STRING
-//        use STRING as the output delimiter the default is to use the input delimiter
-// --help display this help and exit
-// --version
-//        output version information and exit
-
 func main() {
 	cut(os.Args[1:], os.Stdout)
 }
