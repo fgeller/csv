@@ -43,6 +43,7 @@ type parameters struct {
 	inputDelimiter  string
 	outputDelimiter string
 	delimitedOnly   bool
+	complement      bool
 	input           []*os.File
 }
 
@@ -67,6 +68,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	outputDelimiter := ""
 	fileNames := []string{}
 	delimitedOnly := false
+	complement := false
 
 	for index := 0; index < len(rawArguments); index += 1 {
 		argument := rawArguments[index]
@@ -85,6 +87,9 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 
 		case argument == "-s" || argument == "--only-delimited":
 			delimitedOnly = true
+
+		case argument == "--complement":
+			complement = true
 
 		case argument == "--output-delimiter":
 			outputDelimiter = rawArguments[index+1]
@@ -112,6 +117,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		outputDelimiter: outputDelimiter,
 		input:           input,
 		delimitedOnly:   delimitedOnly,
+		complement:      complement,
 	}, nil
 }
 
@@ -163,12 +169,17 @@ func parseRanges(rawRanges string) []Range {
 }
 
 // TODO: can we do this lazily?
-func selectedFields(ranges []Range, total int) []int {
+func selectedFields(parameters *parameters, total int) []int {
 	selected := make([]int, 0)
 outer:
 	for field := 1; field <= total; field += 1 {
-		for _, aRange := range ranges {
-			if aRange.Contains(field) {
+		for _, aRange := range parameters.ranges {
+			contained := aRange.Contains(field)
+			switch {
+			case !parameters.complement && contained:
+				selected = append(selected, field)
+				continue outer
+			case parameters.complement && !contained:
 				selected = append(selected, field)
 				continue outer
 			}
@@ -197,7 +208,7 @@ func cutLine(line string, parameters *parameters) string {
 	}
 
 	fields := strings.Split(line, parameters.inputDelimiter)
-	selected := selectedFields(parameters.ranges, len(fields))
+	selected := selectedFields(parameters, len(fields))
 	collectedFields := collectFields(fields, selected)
 
 	return strings.Join(collectedFields, parameters.outputDelimiter)

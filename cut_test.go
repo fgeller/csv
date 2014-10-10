@@ -116,6 +116,14 @@ moose
 monarch
 `,
 	},
+	{ // inversing range
+		parameters: []string{"-d,", "-f-2", "--complement"},
+		input:      fullFile,
+		expected: `favorite pet
+moose
+monarch
+`,
+	},
 	{ // cutting first and third column
 		parameters: []string{"-d,", "-f1,3"},
 		input:      fullFile,
