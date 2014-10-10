@@ -39,9 +39,10 @@ func NewRange(start int, end int) Range {
 }
 
 type parameters struct {
-	ranges    []Range
-	delimiter string
-	input     []*os.File
+	ranges        []Range
+	delimiter     string
+	delimitedOnly bool
+	input         []*os.File
 }
 
 func openInput(fileNames []string) ([]*os.File, error) {
@@ -63,6 +64,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	ranges := ""
 	delimiter := ","
 	fileNames := []string{}
+	delimitedOnly := false
 
 	for index := 0; index < len(rawArguments); index += 1 {
 		argument := rawArguments[index]
@@ -72,11 +74,16 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			index += 1
 		case strings.HasPrefix(argument, "-f"):
 			ranges = argument[2:]
+
 		case argument == "-d":
 			delimiter = rawArguments[index+1]
 			index += 1
 		case strings.HasPrefix(argument, "-d"):
 			delimiter = argument[2:]
+
+		case argument == "-s":
+			delimitedOnly = true
+
 		case true:
 			fileNames = append(fileNames, argument)
 		}
@@ -88,9 +95,10 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	}
 
 	return &parameters{
-		ranges:    parseRanges(ranges),
-		delimiter: delimiter,
-		input:     input,
+		ranges:        parseRanges(ranges),
+		delimiter:     delimiter,
+		input:         input,
+		delimitedOnly: delimitedOnly,
 	}, nil
 }
 
@@ -170,31 +178,48 @@ func collectFields(fields []string, selected []int) []string {
 	return collectedFields
 }
 
+func cutLine(line string, parameters *parameters) string {
+	if !strings.Contains(line, parameters.delimiter) {
+		return line
+	}
+
+	fields := strings.Split(line, parameters.delimiter)
+	selected := selectedFields(parameters.ranges, len(fields))
+	collectedFields := collectFields(fields, selected)
+
+	return strings.Join(collectedFields, parameters.delimiter)
+}
+
+func skipLine(line string, parameters *parameters) bool {
+	return len(line) > 0 &&
+		parameters.delimitedOnly &&
+		!strings.Contains(line, parameters.delimiter)
+}
+
+func ensureNewLine(line string) string {
+	return fmt.Sprintln(strings.TrimSuffix(line, "\n"))
+}
+
 // TODO take param with modes
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	reader := bufio.NewReader(input)
 
 	for {
 		line, err := reader.ReadString('\n')
-		fields := strings.Split(line, parameters.delimiter)
+		if err != nil && err != io.EOF {
+			fmt.Println("Encountered error while reading:", err)
+		}
 
-		selected := selectedFields(parameters.ranges, len(fields))
-		collectedFields := collectFields(fields, selected)
-
-		newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, parameters.delimiter), "\n"))
-		_, writeErr := io.WriteString(output, newLine)
-
-		if err == io.EOF {
-			break
+		if !skipLine(line, parameters) {
+			newLine := ensureNewLine(cutLine(line, parameters))
+			_, writeErr := io.WriteString(output, newLine)
+			if writeErr != nil {
+				fmt.Println("Encountered error while writing:", writeErr)
+				break
+			}
 		}
 
 		if err != nil {
-			fmt.Println("Encountered error while reading:", err)
-			break
-		}
-
-		if writeErr != nil {
-			fmt.Println("Encountered error while writing:", writeErr)
 			break
 		}
 	}

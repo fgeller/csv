@@ -72,92 +72,80 @@ hans,hansen,moose
 peter,petersen,monarch`
 
 var cutTests = []struct {
-	parameters *parameters
+	parameters []string
 	input      string
 	expected   string
 }{
 	{ // full file when no fields
-		parameters: &parameters{
-			ranges:    []Range{},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,"},
+		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
-	{ // full file when no delimiter
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 1)},
-			delimiter: `\t`,
-		},
-		input: fullFile,
+	{ // full file when no delimiter XXXX
+		parameters: []string{"-dx", "-f1"},
+		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // cutting first column
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 1)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f1"},
+		input:      fullFile,
 		expected: `first name
 hans
 peter
 `,
 	},
 	{ // cutting second column
-		parameters: &parameters{
-			ranges:    []Range{NewRange(2, 2)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f2"},
+		input:      fullFile,
 		expected: `last name
 hansen
 petersen
 `,
 	},
 	{ // cutting third column
-		parameters: &parameters{
-			ranges:    []Range{NewRange(3, 3)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f3"},
+		input:      fullFile,
 		expected: `favorite pet
 moose
 monarch
 `,
 	},
 	{ // cutting first and third column
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 1), NewRange(3, 3)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f1,3"},
+		input:      fullFile,
 		expected: `first name,favorite pet
 hans,moose
 peter,monarch
 `,
 	},
 	{ // cutting first and second column via range
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 2)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f1-2"},
+		input:      fullFile,
 		expected: `first name,last name
 hans,hansen
 peter,petersen
 `,
 	},
 	{ // cutting all via a range
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 0)},
-			delimiter: ",",
-		},
+		parameters: []string{"-d,", "-f1-"},
+		input:      fullFile,
+		expected: `first name,last name,favorite pet
+hans,hansen,moose
+peter,petersen,monarch
+`,
+	},
+	{ // cutting all via a range
+		parameters: []string{"-d,", "-f-3"},
+		// parameters: &parameters{
+		//	ranges:    []Range{NewRange(0, 3)},
+		//	delimiter: ",",
+		// },
 		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -165,32 +153,15 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		parameters: &parameters{
-			ranges:    []Range{NewRange(0, 3)},
-			delimiter: ",",
-		},
-		input: fullFile,
-		expected: `first name,last name,favorite pet
-hans,hansen,moose
-peter,petersen,monarch
-`,
-	},
-	{ // cutting all via a range
-		parameters: &parameters{
-			ranges:    []Range{NewRange(1, 3), NewRange(3, 3)},
-			delimiter: ",",
-		},
-		input: fullFile,
+		parameters: []string{"-d,", "-f1-3,3"},
+		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // include lines that don't contain delimiter by default
-		parameters: &parameters{
-			ranges:    []Range{NewRange(2, 2)},
-			delimiter: ",",
-		},
+		parameters: []string{"-d,", "-f2"},
 		input: `first name,last name
 no delimiter here
 same name,and another`,
@@ -199,25 +170,26 @@ no delimiter here
 and another
 `,
 	},
-	{ // include lines that don't contain delimiter by default
-		parameters: &parameters{
-			ranges:    []Range{NewRange(2, 2)},
-			delimiter: ",",
-		},
-		input: `no delimiter here`,
-		expected: `no delimiter here
+	{ // include exclude lines without delimiter
+		parameters: []string{"-d,", "-f2", "-s"},
+		input: `first name,last name
+no delimiter here
+same name,and another`,
+		expected: `last name
+and another
 `,
 	},
 }
 
 func TestCutFile(t *testing.T) {
 	for _, data := range cutTests {
+		parameters, _ := parseArguments(data.parameters)
 		input := strings.NewReader(data.input)
 		output := bytes.NewBuffer(nil)
 
-		cutFile(input, output, data.parameters)
+		cutFile(input, output, parameters)
 
-		assert(t, output.String(), data.expected)
+		assert(t, data.expected, output.String())
 	}
 }
 
