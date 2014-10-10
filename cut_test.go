@@ -142,11 +142,7 @@ peter,petersen,monarch
 	},
 	{ // cutting all via a range
 		parameters: []string{"-d,", "-f-3"},
-		// parameters: &parameters{
-		//	ranges:    []Range{NewRange(0, 3)},
-		//	delimiter: ",",
-		// },
-		input: fullFile,
+		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
