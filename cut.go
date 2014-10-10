@@ -97,6 +97,14 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			mode = characterMode
 			ranges = argument[2:]
 
+		case argument == "-b":
+			mode = byteMode
+			ranges = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-b"):
+			mode = byteMode
+			ranges = argument[2:]
+
 		case argument == "-d":
 			inputDelimiter = rawArguments[index+1]
 			index += 1
@@ -212,16 +220,30 @@ outer:
 }
 
 func collectCharacters(line string, parameters *parameters) []string {
-	selected := selectedFields(parameters, len(line))
+	runes := []rune(line)
+	selected := selectedFields(parameters, len(runes))
 	if 0 == len(selected) {
 		return []string{line}
 	}
 
-	runes := []rune(line)
-
 	collectedCharacters := make([]string, len(selected))
 	for index, selectedField := range selected {
 		collectedCharacters[index] = string(runes[selectedField-1 : selectedField])
+	}
+
+	return collectedCharacters
+}
+
+func collectBytes(line string, parameters *parameters) []string {
+	bytes := []byte(line)
+	selected := selectedFields(parameters, len(bytes))
+	if 0 == len(selected) {
+		return []string{line}
+	}
+
+	collectedCharacters := make([]string, len(selected))
+	for index, selectedField := range selected {
+		collectedCharacters[index] = string(bytes[selectedField-1 : selectedField])
 	}
 
 	return collectedCharacters
@@ -250,10 +272,12 @@ func collectFields(line string, parameters *parameters) []string {
 func cutLine(line string, parameters *parameters) string {
 	collectedFields := []string{}
 	switch {
-	case parameters.mode == characterMode:
-		collectedFields = collectCharacters(line, parameters)
 	case parameters.mode == fieldMode:
 		collectedFields = collectFields(line, parameters)
+	case parameters.mode == byteMode:
+		collectedFields = collectBytes(line, parameters)
+	case parameters.mode == characterMode:
+		collectedFields = collectCharacters(line, parameters)
 	}
 
 	return strings.Join(collectedFields, parameters.outputDelimiter)

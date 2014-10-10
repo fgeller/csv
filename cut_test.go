@@ -164,6 +164,11 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // select bytes
+		parameters: []string{"-b-2"},
+		input:      `€foo`,
+		expected:   "\xe2\x82\x0a",
+	},
 	{ // select characters / runes
 		parameters: []string{"-c-2"},
 		input:      `€foo`,
