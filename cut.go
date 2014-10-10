@@ -200,7 +200,6 @@ func ensureNewLine(line string) string {
 	return fmt.Sprintln(strings.TrimSuffix(line, "\n"))
 }
 
-// TODO take param with modes
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	reader := bufio.NewReader(input)
 
