@@ -97,6 +97,9 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		case strings.HasPrefix(argument, "--output-delimiter"):
 			outputDelimiter = argument[2:]
 
+		case argument == "-n":
+			// ignore
+
 		case true:
 			fileNames = append(fileNames, argument)
 		}

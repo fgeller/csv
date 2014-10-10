@@ -201,6 +201,15 @@ same name,and another`,
 same namexand another
 `,
 	},
+	{ // ignore -n
+		parameters: []string{"--output-delimiter", "x", "-n", "-d,", "--only-delimited", "-f1,2"},
+		input: `first name,last name
+no delimiter here
+same name,and another`,
+		expected: `first namexlast name
+same namexand another
+`,
+	},
 }
 
 func TestCutFile(t *testing.T) {
