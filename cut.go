@@ -39,10 +39,11 @@ func NewRange(start int, end int) Range {
 }
 
 type parameters struct {
-	ranges        []Range
-	delimiter     string
-	delimitedOnly bool
-	input         []*os.File
+	ranges          []Range
+	inputDelimiter  string
+	outputDelimiter string
+	delimitedOnly   bool
+	input           []*os.File
 }
 
 func openInput(fileNames []string) ([]*os.File, error) {
@@ -62,7 +63,8 @@ func openInput(fileNames []string) ([]*os.File, error) {
 func parseArguments(rawArguments []string) (*parameters, error) {
 	// default values
 	ranges := ""
-	delimiter := ","
+	inputDelimiter := ","
+	outputDelimiter := ""
 	fileNames := []string{}
 	delimitedOnly := false
 
@@ -76,17 +78,27 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			ranges = argument[2:]
 
 		case argument == "-d":
-			delimiter = rawArguments[index+1]
+			inputDelimiter = rawArguments[index+1]
 			index += 1
 		case strings.HasPrefix(argument, "-d"):
-			delimiter = argument[2:]
+			inputDelimiter = argument[2:]
 
 		case argument == "-s" || argument == "--only-delimited":
 			delimitedOnly = true
 
+		case argument == "--output-delimiter":
+			outputDelimiter = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "--output-delimiter"):
+			outputDelimiter = argument[2:]
+
 		case true:
 			fileNames = append(fileNames, argument)
 		}
+	}
+
+	if len(outputDelimiter) == 0 {
+		outputDelimiter = inputDelimiter
 	}
 
 	input, err := openInput(fileNames)
@@ -95,10 +107,11 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	}
 
 	return &parameters{
-		ranges:        parseRanges(ranges),
-		delimiter:     delimiter,
-		input:         input,
-		delimitedOnly: delimitedOnly,
+		ranges:          parseRanges(ranges),
+		inputDelimiter:  inputDelimiter,
+		outputDelimiter: outputDelimiter,
+		input:           input,
+		delimitedOnly:   delimitedOnly,
 	}, nil
 }
 
@@ -179,21 +192,21 @@ func collectFields(fields []string, selected []int) []string {
 }
 
 func cutLine(line string, parameters *parameters) string {
-	if !strings.Contains(line, parameters.delimiter) {
+	if !strings.Contains(line, parameters.inputDelimiter) {
 		return line
 	}
 
-	fields := strings.Split(line, parameters.delimiter)
+	fields := strings.Split(line, parameters.inputDelimiter)
 	selected := selectedFields(parameters.ranges, len(fields))
 	collectedFields := collectFields(fields, selected)
 
-	return strings.Join(collectedFields, parameters.delimiter)
+	return strings.Join(collectedFields, parameters.outputDelimiter)
 }
 
 func skipLine(line string, parameters *parameters) bool {
 	return len(line) > 0 &&
 		parameters.delimitedOnly &&
-		!strings.Contains(line, parameters.delimiter)
+		!strings.Contains(line, parameters.inputDelimiter)
 }
 
 func ensureNewLine(line string) string {

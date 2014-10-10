@@ -47,13 +47,13 @@ func TestFieldsArgumentParsing(t *testing.T) {
 
 func TestDelimiterArgumentParsing(t *testing.T) {
 	arguments, _ := parseArguments([]string{"-d", ","})
-	assert(t, ",", arguments.delimiter)
+	assert(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{"-d,"})
-	assert(t, ",", arguments.delimiter)
+	assert(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{})
-	assert(t, ",", arguments.delimiter)
+	assert(t, ",", arguments.inputDelimiter)
 }
 
 func TestFileNameArgumentParsing(t *testing.T) {
@@ -186,6 +186,15 @@ no delimiter here
 same name,and another`,
 		expected: `last name
 and another
+`,
+	},
+	{ // include exclude lines without delimiter
+		parameters: []string{"--output-delimiter", "x", "-d,", "--only-delimited", "-f1,2"},
+		input: `first name,last name
+no delimiter here
+same name,and another`,
+		expected: `first namexlast name
+same namexand another
 `,
 	},
 }
