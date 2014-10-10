@@ -11,6 +11,11 @@ const (
 	fields_message    string = "select only these fields"
 	delimiter_message string = "custom delimiter"
 )
+const (
+	fieldMode = iota
+	byteMode
+	characterMode
+)
 
 // mhh... how to resolve naming conflict?
 type Range struct {
@@ -39,6 +44,7 @@ func NewRange(start int, end int) Range {
 }
 
 type parameters struct {
+	mode            int
 	ranges          []Range
 	inputDelimiter  string
 	outputDelimiter string
@@ -64,6 +70,7 @@ func openInput(fileNames []string) ([]*os.File, error) {
 func parseArguments(rawArguments []string) (*parameters, error) {
 	// default values
 	ranges := ""
+	mode := fieldMode
 	inputDelimiter := ","
 	outputDelimiter := ""
 	fileNames := []string{}
@@ -73,10 +80,21 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	for index := 0; index < len(rawArguments); index += 1 {
 		argument := rawArguments[index]
 		switch {
+
 		case argument == "-f":
+			mode = fieldMode
 			ranges = rawArguments[index+1]
 			index += 1
 		case strings.HasPrefix(argument, "-f"):
+			mode = fieldMode
+			ranges = argument[2:]
+
+		case argument == "-c":
+			mode = characterMode
+			ranges = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-c"):
+			mode = characterMode
 			ranges = argument[2:]
 
 		case argument == "-d":
@@ -105,7 +123,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		}
 	}
 
-	if len(outputDelimiter) == 0 {
+	if len(outputDelimiter) == 0 && mode == fieldMode {
 		outputDelimiter = inputDelimiter
 	}
 
@@ -115,6 +133,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	}
 
 	return &parameters{
+		mode:            mode,
 		ranges:          parseRanges(ranges),
 		inputDelimiter:  inputDelimiter,
 		outputDelimiter: outputDelimiter,
@@ -192,9 +211,32 @@ outer:
 	return selected
 }
 
-func collectFields(fields []string, selected []int) []string {
+func collectCharacters(line string, parameters *parameters) []string {
+	selected := selectedFields(parameters, len(line))
 	if 0 == len(selected) {
-		return fields
+		return []string{line}
+	}
+
+	runes := []rune(line)
+
+	collectedCharacters := make([]string, len(selected))
+	for index, selectedField := range selected {
+		collectedCharacters[index] = string(runes[selectedField-1 : selectedField])
+	}
+
+	return collectedCharacters
+}
+
+func collectFields(line string, parameters *parameters) []string {
+	if !strings.Contains(line, parameters.inputDelimiter) {
+		return []string{line}
+	}
+
+	fields := strings.Split(line, parameters.inputDelimiter)
+	selected := selectedFields(parameters, len(fields))
+
+	if 0 == len(selected) {
+		return []string{line}
 	}
 
 	collectedFields := make([]string, len(selected))
@@ -206,13 +248,13 @@ func collectFields(fields []string, selected []int) []string {
 }
 
 func cutLine(line string, parameters *parameters) string {
-	if !strings.Contains(line, parameters.inputDelimiter) {
-		return line
+	collectedFields := []string{}
+	switch {
+	case parameters.mode == characterMode:
+		collectedFields = collectCharacters(line, parameters)
+	case parameters.mode == fieldMode:
+		collectedFields = collectFields(line, parameters)
 	}
-
-	fields := strings.Split(line, parameters.inputDelimiter)
-	selected := selectedFields(parameters, len(fields))
-	collectedFields := collectFields(fields, selected)
 
 	return strings.Join(collectedFields, parameters.outputDelimiter)
 }

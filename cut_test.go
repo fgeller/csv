@@ -164,6 +164,12 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // select characters / runes
+		parameters: []string{"-c-2"},
+		input:      `€foo`,
+		expected: `€f
+`,
+	},
 	{ // include lines that don't contain delimiter by default
 		parameters: []string{"-d,", "-f2"},
 		input: `first name,last name
