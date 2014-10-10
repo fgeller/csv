@@ -171,17 +171,17 @@ func collectFields(fields []string, selected []int) []string {
 }
 
 // TODO take param with modes
-func cutFile(input io.Reader, output io.Writer, delimiter string, ranges []Range) {
+func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	reader := bufio.NewReader(input)
 
 	for {
 		line, err := reader.ReadString('\n')
-		fields := strings.Split(line, delimiter)
+		fields := strings.Split(line, parameters.delimiter)
 
-		selected := selectedFields(ranges, len(fields))
+		selected := selectedFields(parameters.ranges, len(fields))
 		collectedFields := collectFields(fields, selected)
 
-		newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, delimiter), "\n"))
+		newLine := fmt.Sprintln(strings.TrimSuffix(strings.Join(collectedFields, parameters.delimiter), "\n"))
 		_, writeErr := io.WriteString(output, newLine)
 
 		if err == io.EOF {
@@ -208,35 +208,26 @@ func cut(arguments []string, output io.Writer) {
 	}
 
 	for _, file := range parameters.input {
-		cutFile(file, output, parameters.delimiter, parameters.ranges)
+		cutFile(file, output, parameters)
 	}
 }
 
 // -b, --bytes=LIST
 //        select only these bytes
-
 // -c, --characters=LIST
 //        select only these characters
-
 // -d, --delimiter=DELIM
 //        use DELIM instead of TAB for field delimiter
-
 // -f, --fields=LIST
 //        select only these fields;  also print any line that contains no delimiter character, unless the -s option is specified
-
 // -n     (ignored)
-
 // --complement
 //        complement the set of selected bytes, characters or fields
-
 // -s, --only-delimited
 //        do not print lines not containing delimiters
-
 // --output-delimiter=STRING
 //        use STRING as the output delimiter the default is to use the input delimiter
-
 // --help display this help and exit
-
 // --version
 //        output version information and exit
 

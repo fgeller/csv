@@ -72,104 +72,125 @@ hans,hansen,moose
 peter,petersen,monarch`
 
 var cutTests = []struct {
-	ranges    []Range
-	delimiter string
-	input     string
-	expected  string
+	parameters *parameters
+	input      string
+	expected   string
 }{
 	{ // full file when no fields
-		ranges:    []Range{},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // full file when no delimiter
-		ranges:    []Range{NewRange(1, 1)},
-		delimiter: `\t`,
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 1)},
+			delimiter: `\t`,
+		},
+		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // cutting first column
-		ranges:    []Range{NewRange(1, 1)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 1)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name
 hans
 peter
 `,
 	},
 	{ // cutting second column
-		ranges:    []Range{NewRange(2, 2)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(2, 2)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `last name
 hansen
 petersen
 `,
 	},
 	{ // cutting third column
-		ranges:    []Range{NewRange(3, 3)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(3, 3)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `favorite pet
 moose
 monarch
 `,
 	},
 	{ // cutting first and third column
-		ranges:    []Range{NewRange(1, 1), NewRange(3, 3)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 1), NewRange(3, 3)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,favorite pet
 hans,moose
 peter,monarch
 `,
 	},
 	{ // cutting first and second column via range
-		ranges:    []Range{NewRange(1, 2)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 2)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,last name
 hans,hansen
 peter,petersen
 `,
 	},
 	{ // cutting all via a range
-		ranges:    []Range{NewRange(1, 0)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 0)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		ranges:    []Range{NewRange(0, 3)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(0, 3)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		ranges:    []Range{NewRange(1, 3), NewRange(3, 3)},
-		delimiter: ",",
-		input:     fullFile,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(1, 3), NewRange(3, 3)},
+			delimiter: ",",
+		},
+		input: fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
 	{ // include lines that don't contain delimiter by default
-		ranges:    []Range{NewRange(2, 2)},
-		delimiter: ",",
+		parameters: &parameters{
+			ranges:    []Range{NewRange(2, 2)},
+			delimiter: ",",
+		},
 		input: `first name,last name
 no delimiter here
 same name,and another`,
@@ -179,9 +200,11 @@ and another
 `,
 	},
 	{ // include lines that don't contain delimiter by default
-		ranges:    []Range{NewRange(2, 2)},
-		delimiter: ",",
-		input:     `no delimiter here`,
+		parameters: &parameters{
+			ranges:    []Range{NewRange(2, 2)},
+			delimiter: ",",
+		},
+		input: `no delimiter here`,
 		expected: `no delimiter here
 `,
 	},
@@ -192,7 +215,7 @@ func TestCutFile(t *testing.T) {
 		input := strings.NewReader(data.input)
 		output := bytes.NewBuffer(nil)
 
-		cutFile(input, output, data.delimiter, data.ranges)
+		cutFile(input, output, data.parameters)
 
 		assert(t, output.String(), data.expected)
 	}
