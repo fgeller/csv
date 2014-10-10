@@ -189,8 +189,6 @@ and another
 
 func TestCutFile(t *testing.T) {
 	for _, data := range cutTests {
-		// input, _ := os.Open(fileName)
-		// defer input.Close()
 		input := strings.NewReader(data.input)
 		output := bytes.NewBuffer(nil)
 
