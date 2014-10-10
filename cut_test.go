@@ -167,6 +167,24 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // include lines that don't contain delimiter by default
+		ranges:    []Range{NewRange(2, 2)},
+		delimiter: ",",
+		input: `first name,last name
+no delimiter here
+same name,and another`,
+		expected: `last name
+no delimiter here
+and another
+`,
+	},
+	{ // include lines that don't contain delimiter by default
+		ranges:    []Range{NewRange(2, 2)},
+		delimiter: ",",
+		input:     `no delimiter here`,
+		expected: `no delimiter here
+`,
+	},
 }
 
 func TestCutFile(t *testing.T) {
