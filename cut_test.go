@@ -179,6 +179,15 @@ same name,and another`,
 and another
 `,
 	},
+	{ // include exclude lines without delimiter
+		parameters: []string{"-d,", "--only-delimited", "-f2"},
+		input: `first name,last name
+no delimiter here
+same name,and another`,
+		expected: `last name
+and another
+`,
+	},
 }
 
 func TestCutFile(t *testing.T) {

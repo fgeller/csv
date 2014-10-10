@@ -81,7 +81,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		case strings.HasPrefix(argument, "-d"):
 			delimiter = argument[2:]
 
-		case argument == "-s":
+		case argument == "-s" || argument == "--only-delimited":
 			delimitedOnly = true
 
 		case true:
