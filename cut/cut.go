@@ -15,6 +15,7 @@ const (
 	fieldMode = iota
 	byteMode
 	characterMode
+	csvMode
 )
 
 // mhh... how to resolve naming conflict?
@@ -71,7 +72,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	// default values
 	ranges := ""
 	mode := fieldMode
-	inputDelimiter := "\t"
+	inputDelimiter := ""
 	outputDelimiter := ""
 	fileNames := []string{}
 	delimitedOnly := false
@@ -87,6 +88,14 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			index += 1
 		case strings.HasPrefix(argument, "-f"):
 			mode = fieldMode
+			ranges = argument[2:]
+
+		case argument == "-e":
+			mode = csvMode
+			ranges = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-e"):
+			mode = csvMode
 			ranges = argument[2:]
 
 		case argument == "-c":
@@ -131,7 +140,14 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		}
 	}
 
-	if len(outputDelimiter) == 0 && mode == fieldMode {
+	switch {
+	case inputDelimiter == "" && mode == csvMode:
+		inputDelimiter = ","
+	case inputDelimiter == "":
+		inputDelimiter = "\t"
+	}
+
+	if len(outputDelimiter) == 0 && (mode == fieldMode || mode == csvMode) {
 		outputDelimiter = inputDelimiter
 	}
 
@@ -269,11 +285,33 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
+func collectCSVFields(line string, parameters *parameters) []string {
+	if !strings.Contains(line, parameters.inputDelimiter) {
+		return []string{line}
+	}
+
+	fields := strings.Split(line, parameters.inputDelimiter)
+	selected := selectedFields(parameters, len(fields))
+
+	if 0 == len(selected) {
+		return []string{line}
+	}
+
+	collectedFields := make([]string, len(selected))
+	for index, selectedField := range selected {
+		collectedFields[index] = fields[selectedField-1]
+	}
+
+	return collectedFields
+}
+
 func cutLine(line string, parameters *parameters) string {
 	collectedFields := []string{}
 	switch {
 	case parameters.mode == fieldMode:
 		collectedFields = collectFields(line, parameters)
+	case parameters.mode == csvMode:
+		collectedFields = collectCSVFields(line, parameters)
 	case parameters.mode == byteMode:
 		collectedFields = collectBytes(line, parameters)
 	case parameters.mode == characterMode:

@@ -164,6 +164,14 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // cutting csv values
+		parameters: []string{"-e2-"},
+		input:      fullFile,
+		expected: `last name,favorite pet
+hansen,moose
+petersen,monarch
+`,
+	},
 	{ // select bytes
 		parameters: []string{"-b-2"},
 		input:      `€foo`,
