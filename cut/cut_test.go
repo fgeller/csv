@@ -7,7 +7,7 @@ import "fmt"
 import "reflect"
 import "strings"
 
-func assert(t *testing.T, expected interface{}, actual interface{}) {
+func equal(t *testing.T, expected interface{}, actual interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
 		t.Error(
 			"Expected", fmt.Sprintf("[%v]", expected),
@@ -18,53 +18,53 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 
 func TestFieldsArgumentParsing(t *testing.T) {
 	arguments, _ := parseArguments([]string{fmt.Sprint("-f", "1,3,5")})
-	assert(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1,3,5"})
-	assert(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{})
-	assert(t, []Range{}, arguments.ranges)
+	equal(t, []Range{}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1-3"})
-	assert(t, []Range{NewRange(1, 3)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 3)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1-"})
-	assert(t, []Range{NewRange(1, 0)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 0)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1"})
-	assert(t, []Range{NewRange(1, 1)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 1)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "-23"})
-	assert(t, []Range{NewRange(0, 23)}, arguments.ranges)
+	equal(t, []Range{NewRange(0, 23)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1-3,5"})
-	assert(t, []Range{NewRange(1, 3), NewRange(5, 5)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 3), NewRange(5, 5)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1-3,-5,23,42-"})
-	assert(t, []Range{NewRange(1, 3), NewRange(0, 5), NewRange(23, 23), NewRange(42, 0)}, arguments.ranges)
+	equal(t, []Range{NewRange(1, 3), NewRange(0, 5), NewRange(23, 23), NewRange(42, 0)}, arguments.ranges)
 }
 
 func TestDelimiterArgumentParsing(t *testing.T) {
 	arguments, _ := parseArguments([]string{"-d", ","})
-	assert(t, ",", arguments.inputDelimiter)
+	equal(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{"-d,"})
-	assert(t, ",", arguments.inputDelimiter)
+	equal(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{})
-	assert(t, "\t", arguments.inputDelimiter)
+	equal(t, "\t", arguments.inputDelimiter)
 }
 
 func TestFileNameArgumentParsing(t *testing.T) {
 	arguments, _ := parseArguments([]string{"sample.csv"})
-	assert(t, "sample.csv", arguments.input[0].Name())
+	equal(t, "sample.csv", arguments.input[0].Name())
 
 	arguments, _ = parseArguments([]string{})
-	assert(t, []*os.File{os.Stdin}, arguments.input)
+	equal(t, []*os.File{os.Stdin}, arguments.input)
 
 	arguments, _ = parseArguments([]string{"-"})
-	assert(t, []*os.File{os.Stdin}, arguments.input)
+	equal(t, []*os.File{os.Stdin}, arguments.input)
 }
 
 var fullFile = `first name,last name,favorite pet
@@ -327,7 +327,7 @@ func TestCutFile(t *testing.T) {
 
 		cutFile(input, output, parameters)
 
-		assert(t, data.expected, output.String())
+		equal(t, data.expected, output.String())
 	}
 }
 
@@ -344,7 +344,7 @@ peter,petersen,monarch
 
 	cut([]string{fileName}, output)
 
-	assert(t, string(contents), output.String())
+	equal(t, string(contents), output.String())
 }
 
 func TestCuttingMultipleFiles(t *testing.T) {
@@ -360,5 +360,5 @@ peter,petersen,monarch
 
 	cut([]string{fileName, fileName}, output)
 
-	assert(t, fmt.Sprint(string(contents), string(contents)), output.String())
+	equal(t, fmt.Sprint(string(contents), string(contents)), output.String())
 }
