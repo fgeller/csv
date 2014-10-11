@@ -182,6 +182,16 @@ hansen,"moose,goose"
 "petersen,muellersen",monarch
 `,
 	},
+	{ // cutting csv values that are doubly escaped
+		parameters: []string{"-e2-3"},
+		input: `first name,last name,"favorite"" pet"
+"hans",hansen,"moose,goose"
+peter,"petersen,""""""""muellersen",monarch`,
+		expected: `last name,"favorite"" pet"
+hansen,"moose,goose"
+"petersen,""""""""muellersen",monarch
+`,
+	},
 	{ // select bytes
 		parameters: []string{"-b-2"},
 		input:      `€foo`,

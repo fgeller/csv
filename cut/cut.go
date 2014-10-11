@@ -303,7 +303,7 @@ func findCSVFields(line string, parameters *parameters) []string {
 		case !inEscaped && character == DQUOTE:
 			inEscaped = true
 			word = append(word, character)
-		case inEscaped && character == DQUOTE: // && line[index+1] != dquote
+		case inEscaped && character == DQUOTE:
 			inEscaped = false
 			word = append(word, character)
 		case !inEscaped && character == COMMA:
