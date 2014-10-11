@@ -173,6 +173,36 @@ peter,petersen,monarch
 			"hansen,moose\x0a" +
 			"petersen,monarch\x0a",
 	},
+	{ // cutting csv values by column name
+		parameters: []string{"-E\"middle name\"", "--line-end=LF"},
+		input: `first name,middle name,last name
+albert,bert,claus
+dieter,emil,frieda`,
+		expected: `middle name
+bert
+emil
+`,
+	},
+	{ // cutting csv values by column names
+		parameters: []string{"-E\"first name\",\"last name\"", "--line-end=LF"},
+		input: `first name,middle name,last name
+albert,bert,claus
+dieter,emil,frieda`,
+		expected: `first name,last name
+albert,claus
+dieter,frieda
+`,
+	},
+	{ // cutting csv values by column names without escaping
+		parameters: []string{"-Efirst,third", "--line-end=LF"},
+		input: `first,second,third
+albert,bert,claus
+dieter,emil,frieda`,
+		expected: `first,third
+albert,claus
+dieter,frieda
+`,
+	},
 	{ // cutting csv values with CRLF explicitly
 		parameters: []string{"-e2-", "--line-end=CRLF"},
 		input: "first a,last b,favorite pet\x0d\x0a" +

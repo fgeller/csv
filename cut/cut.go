@@ -60,6 +60,7 @@ type parameters struct {
 	delimitedOnly   bool
 	complement      bool
 	input           []*os.File
+	headerNames     string
 	lineEnd         string
 }
 
@@ -78,7 +79,6 @@ func openInput(fileNames []string) ([]*os.File, error) {
 
 // TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
-	// default values
 	ranges := ""
 	mode := fieldMode
 	inputDelimiter := ""
@@ -86,6 +86,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	fileNames := []string{}
 	delimitedOnly := false
 	complement := false
+	headerNames := ""
 	lineEnd := ""
 
 	for index := 0; index < len(rawArguments); index += 1 {
@@ -107,6 +108,14 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		case strings.HasPrefix(argument, "-e"):
 			mode = csvMode
 			ranges = argument[2:]
+
+		case argument == "-E":
+			mode = csvMode
+			headerNames = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-E"):
+			mode = csvMode
+			headerNames = argument[2:]
 
 		case argument == "-c":
 			mode = characterMode
@@ -189,6 +198,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		input:           input,
 		delimitedOnly:   delimitedOnly,
 		complement:      complement,
+		headerNames:     headerNames,
 		lineEnd:         lineEnd,
 	}, nil
 }
@@ -344,19 +354,18 @@ func findCSVFields(input *bufio.Reader, parameters *parameters) ([]string, error
 		}
 
 		if err != nil {
-			found = append(found, string(word))
+			if len(word) > 0 {
+				found = append(found, string(word))
+			}
 			return found, err
 		}
 	}
 
 }
 
-func collectCSVFields(input *bufio.Reader, parameters *parameters) ([]string, error) {
-	fields, err := findCSVFields(input, parameters)
-	selected := selectedFields(parameters, len(fields))
-
-	if 0 == len(selected) {
-		return fields, err
+func collectCSVFields(fields []string, selected []int, parameters *parameters) []string {
+	if 0 == len(selected) || 0 == len(fields) {
+		return fields
 	}
 
 	collectedFields := make([]string, len(selected))
@@ -364,7 +373,7 @@ func collectCSVFields(input *bufio.Reader, parameters *parameters) ([]string, er
 		collectedFields[index] = fields[selectedField-1]
 	}
 
-	return collectedFields, err
+	return collectedFields
 }
 
 func cutLine(line string, parameters *parameters) string {
@@ -391,26 +400,60 @@ func ensureNewLine(line string, lineEnd string) string {
 	return fmt.Sprintf("%v%v", strings.TrimSuffix(line, lineEnd), lineEnd)
 }
 
+func selectFieldsByName(parameters *parameters, headers []string) []int {
+	rawNames := strings.Split(parameters.headerNames, ",")
+	selectedNames := make([]string, len(rawNames))
+	for index, rawName := range rawNames {
+		selectedNames[index] = strings.Trim(rawName, "\"")
+	}
+
+	selected := make([]int, 0)
+	for index, header := range headers {
+		for _, selectedName := range selectedNames {
+			if selectedName == header {
+				selected = append(selected, index+1) // :|
+			}
+		}
+	}
+
+	return selected
+}
+
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReader(input)
+	header := true
+	selected := []int{}
 
 	for {
-		collectedFields, err := collectCSVFields(bufferedInput, parameters)
+		fields, err := findCSVFields(bufferedInput, parameters)
+
+		if header {
+			if 0 == len(parameters.ranges) && parameters.headerNames != "" {
+				selected = selectFieldsByName(parameters, fields)
+			} else {
+				selected = selectedFields(parameters, len(fields))
+			}
+
+			header = false
+		}
+
+		collectedFields := collectCSVFields(fields, selected, parameters)
+		if len(collectedFields) > 0 {
+			newLine := ensureNewLine(strings.Join(collectedFields, parameters.outputDelimiter), parameters.lineEnd)
+
+			_, writeErr := io.WriteString(output, newLine)
+			if writeErr != nil {
+				fmt.Println("Encountered error while writing:", writeErr)
+				break
+			}
+		}
+
 		if err != nil && err != io.EOF {
 			fmt.Println("Encountered error while reading:", err)
 		}
 		if err != nil {
 			break
 		}
-
-		newLine := ensureNewLine(strings.Join(collectedFields, parameters.outputDelimiter), parameters.lineEnd)
-
-		_, writeErr := io.WriteString(output, newLine)
-		if writeErr != nil {
-			fmt.Println("Encountered error while writing:", writeErr)
-			break
-		}
-
 	}
 }
 
