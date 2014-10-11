@@ -16,6 +16,9 @@ func assert(t *testing.T, expected interface{}, actual interface{}) {
 }
 
 func TestRandomLineGenerator(t *testing.T) {
-	line := randomLine(&parameters{fields: 3})
-	assert(t, 2, strings.Count(line, ","))
+	for count := 0; count < 10; count += 1 {
+		line := randomLine(&parameters{fields: 3, minWordLength: 1, maxWordLength: 3})
+		assert(t, true, 2 <= strings.Count(line, ","))
+		assert(t, true, len(line) > 2 && len(line) < 12)
+	}
 }
