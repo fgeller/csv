@@ -35,3 +35,12 @@ func randomLine(parameters *parameters) string {
 	}
 	return strings.Join(randomWords, ",")
 }
+
+func randomFile(parameters *parameters) string {
+	randomLines := make([]string, parameters.lineCount)
+	for index := 0; index < parameters.fields; index += 1 {
+		randomLines[index] = randomLine(parameters)
+	}
+
+	return strings.Join(randomLines, "\n")
+}
