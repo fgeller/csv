@@ -235,6 +235,12 @@ peter,petersen,monarch
 		expected: `€xf
 `,
 	},
+	{ // select characters / runes with custom separator with different argument formatting
+		parameters: []string{"-c-2", "--output-delimiter=x"},
+		input:      `€foo`,
+		expected: `€xf
+`,
+	},
 	{ // include lines that don't contain delimiter by default
 		parameters: []string{"-d,", "-f2"},
 		input: `first name,last name
