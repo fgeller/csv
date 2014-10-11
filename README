@@ -1,12 +1,18 @@
 Go version of cut, with CSV files in mind.
 
- Differences to GNU cut:
+Differences to GNU cut:
   - Acts as cat when no fields selected
-
- TODO:
+  
+TODO:
   - CSV mode
-    - quoted fields (containing delimiter)
+    - quoted fields (containing delimiter, double quote escaping double quote)
     - escaped delimiter in fields
-    - defaults to , as delimiter
+    - handling of CRLF (also in quoted fields)
+    - select by column header
   - Argument parsing (long and short options)
+  - Argument parsing (-- to delimit input files)
   - Error messages for invalid arguments
+
+References
+  https://www.gnu.org/software/coreutils/manual/html_node/cut-invocation.html#cut-invocation
+  https://www.rfc-editor.org/rfc/rfc4180.txt
