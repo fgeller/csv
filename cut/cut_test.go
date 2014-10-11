@@ -182,6 +182,15 @@ peter,petersen,monarch
 			"hansen,\"moose,goose\"\x0d\x0a" +
 			"\"petersen,muellersen\",monarch\x0d\x0a",
 	},
+	{ // cutting csv values that are escaped and contain new lines
+		parameters: []string{"-e2-3"},
+		input: "first name,last name,\"\x0d\x0afavorite pet\"\x0d\x0a" +
+			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
+			"peter,\"petersen,muellersen\x0d\x0a\",monarch\x0d\x0a",
+		expected: "last name,\"\x0d\x0afavorite pet\"\x0d\x0a" +
+			"hansen,\"moose,goose\"\x0d\x0a" +
+			"\"petersen,muellersen\x0d\x0a\",monarch\x0d\x0a",
+	},
 	{ // cutting csv values that are doubly escaped
 		parameters: []string{"-e2-3"},
 		input: "first name,last name,\"favorite\"\" pet\"\x0d\x0a" +
