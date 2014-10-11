@@ -91,7 +91,6 @@ func parseArguments(arguments []string) *parameters {
 
 func gen(arguments []string, output io.Writer) {
 	parameters := parseArguments(arguments)
-	fmt.Println("Parsed parameters", parameters)
 	for lineCount := 1; lineCount <= parameters.lineCount; lineCount += 1 {
 		io.WriteString(output, fmt.Sprintln(randomLine(parameters)))
 	}

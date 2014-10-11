@@ -60,7 +60,6 @@ func TestGen(t *testing.T) {
 		gen(data.arguments, output)
 
 		generated := output.String()
-		fmt.Printf("Got generated [%v]", generated)
 
 		lines := strings.Split(generated, "\n")
 		assert(t, data.lineCount+1, len(lines))
