@@ -11,6 +11,14 @@ const (
 	fields_message    string = "select only these fields"
 	delimiter_message string = "custom delimiter"
 )
+
+const (
+	DQUOTE rune = 0x22
+	COMMA  rune = 0x2c
+	CR     rune = 0x0d
+	LF     rune = 0x0a
+)
+
 const (
 	fieldMode = iota
 	byteMode
@@ -285,12 +293,38 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
+func findCSVFields(line string, parameters *parameters) []string {
+	found := make([]string, 0)
+	inEscaped := false
+	word := make([]rune, 0)
+
+	for _, character := range line {
+		switch {
+		case !inEscaped && character == DQUOTE:
+			inEscaped = true
+			word = append(word, character)
+		case inEscaped && character == DQUOTE: // && line[index+1] != dquote
+			inEscaped = false
+			word = append(word, character)
+		case !inEscaped && character == COMMA:
+			found = append(found, string(word))
+			word = make([]rune, 0)
+		case true:
+			word = append(word, character)
+		}
+
+	}
+	found = append(found, string(word))
+
+	return found
+}
+
 func collectCSVFields(line string, parameters *parameters) []string {
 	if !strings.Contains(line, parameters.inputDelimiter) {
 		return []string{line}
 	}
 
-	fields := strings.Split(line, parameters.inputDelimiter)
+	fields := findCSVFields(line, parameters)
 	selected := selectedFields(parameters, len(fields))
 
 	if 0 == len(selected) {
