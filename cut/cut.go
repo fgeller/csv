@@ -71,7 +71,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	// default values
 	ranges := ""
 	mode := fieldMode
-	inputDelimiter := ","
+	inputDelimiter := "\t"
 	outputDelimiter := ""
 	fileNames := []string{}
 	delimitedOnly := false

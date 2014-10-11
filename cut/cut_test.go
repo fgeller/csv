@@ -53,7 +53,7 @@ func TestDelimiterArgumentParsing(t *testing.T) {
 	assert(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{})
-	assert(t, ",", arguments.inputDelimiter)
+	assert(t, "\t", arguments.inputDelimiter)
 }
 
 func TestFileNameArgumentParsing(t *testing.T) {
