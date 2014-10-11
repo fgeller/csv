@@ -4,11 +4,6 @@ Differences to GNU cut:
   - Acts as cat when no fields selected
   
 TODO:
-  - CSV mode
-    - quoted fields (containing delimiter, double quote escaping double quote)
-    - escaped delimiter in fields
-    - handling of CRLF (also in quoted fields)
-    - select by column header
   - Argument parsing (long and short options)
   - Argument parsing (-- to delimit input files)
   - Error messages for invalid arguments
