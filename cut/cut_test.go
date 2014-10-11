@@ -166,31 +166,30 @@ peter,petersen,monarch
 	},
 	{ // cutting csv values
 		parameters: []string{"-e2-"},
-		input:      fullFile,
-		expected: `last name,favorite pet
-hansen,moose
-petersen,monarch
-`,
+		input: "first a,last a,favorite pet\x0d\x0a" +
+			"hans,hansen,moose\x0d\x0a" +
+			"peter,petersen,monarch\x0d\x0a",
+		expected: "last a,favorite pet\x0d\x0a" +
+			"hansen,moose\x0d\x0a" +
+			"petersen,monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are escaped
 		parameters: []string{"-e2-3"},
-		input: `first name,last name,"favorite pet"
-"hans",hansen,"moose,goose"
-peter,"petersen,muellersen",monarch`,
-		expected: `last name,"favorite pet"
-hansen,"moose,goose"
-"petersen,muellersen",monarch
-`,
+		input: "first name,last name,\"favorite pet\"\x0d\x0a" +
+			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
+			"peter,\"petersen,muellersen\",monarch\x0d\x0a",
+		expected: "last name,\"favorite pet\"\x0d\x0a" +
+			"hansen,\"moose,goose\"\x0d\x0a" +
+			"\"petersen,muellersen\",monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are doubly escaped
 		parameters: []string{"-e2-3"},
-		input: `first name,last name,"favorite"" pet"
-"hans",hansen,"moose,goose"
-peter,"petersen,""""""""muellersen",monarch`,
-		expected: `last name,"favorite"" pet"
-hansen,"moose,goose"
-"petersen,""""""""muellersen",monarch
-`,
+		input: "first name,last name,\"favorite\"\" pet\"\x0d\x0a" +
+			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
+			"peter,\"petersen,\"\"\"\"\"\"\"\"muellersen\",monarch\x0d\x0a",
+		expected: "last name,\"favorite\"\" pet\"\x0d\x0a" +
+			"hansen,\"moose,goose\"\x0d\x0a" +
+			"\"petersen,\"\"\"\"\"\"\"\"muellersen\",monarch\x0d\x0a",
 	},
 	{ // select bytes
 		parameters: []string{"-b-2"},
