@@ -13,6 +13,7 @@ type parameters struct {
 	maxWordLength int
 	minWordLength int
 	lineCount     int
+	noComma       bool
 }
 
 func (p *parameters) String() string {
@@ -20,18 +21,22 @@ func (p *parameters) String() string {
 		p.lineCount, p.fields, p.maxWordLength, p.minWordLength)
 }
 
-func randomASCIIByte() byte {
+func randomASCIIByte(parameters *parameters) byte {
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return byte(rand.Intn(95) + 32)
+	number := rand.Intn(95) + 32
+	if parameters.noComma && number == 44 {
+		number = 45
+	}
+	return byte(number)
 }
 
-func randomWord(minLength int, maxLength int) string {
+func randomWord(parameters *parameters) string {
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	length := rand.Intn(maxLength-minLength) + minLength
+	length := rand.Intn(parameters.maxWordLength-parameters.minWordLength) + parameters.minWordLength
 
 	characters := make([]byte, length)
 	for index := 0; index < length; index += 1 {
-		characters[index] = randomASCIIByte()
+		characters[index] = randomASCIIByte(parameters)
 	}
 
 	return string(characters)
@@ -40,7 +45,7 @@ func randomWord(minLength int, maxLength int) string {
 func randomLine(parameters *parameters) string {
 	randomWords := make([]string, parameters.fields)
 	for index := 0; index < parameters.fields; index += 1 {
-		randomWords[index] = randomWord(parameters.minWordLength, parameters.maxWordLength)
+		randomWords[index] = randomWord(parameters)
 	}
 	return strings.Join(randomWords, ",")
 }
@@ -60,6 +65,7 @@ func parseArguments(arguments []string) *parameters {
 	fieldCount := 0
 	minWordLength := 0
 	maxWordLength := 10
+	noComma := false
 
 	for _, argument := range arguments {
 		switch {
@@ -78,6 +84,9 @@ func parseArguments(arguments []string) *parameters {
 		case strings.HasPrefix(argument, "-cmin"):
 			number, _ := strconv.ParseInt(argument[5:], 10, 32)
 			minWordLength = int(number)
+
+		case argument == "--no-comma-values":
+			noComma = true
 		}
 	}
 
@@ -86,6 +95,7 @@ func parseArguments(arguments []string) *parameters {
 		fields:        fieldCount,
 		minWordLength: minWordLength,
 		maxWordLength: maxWordLength,
+		noComma:       noComma,
 	}
 }
 

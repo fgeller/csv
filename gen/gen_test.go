@@ -43,6 +43,7 @@ var genTestData = []struct {
 	minWordLength int
 	maxWordLength int
 	lineCount     int
+	noComma       bool
 }{
 	{
 		arguments:     []string{"-l2", "-f3", "-cmax10", "-cmin1"},
@@ -50,6 +51,15 @@ var genTestData = []struct {
 		minWordLength: 1,
 		maxWordLength: 10,
 		lineCount:     2,
+		noComma:       false,
+	},
+	{
+		arguments:     []string{"-l10", "-f3", "-cmax10", "-cmin1", "--no-comma-values"},
+		fields:        3,
+		minWordLength: 1,
+		maxWordLength: 10,
+		lineCount:     10,
+		noComma:       true,
 	},
 }
 
@@ -65,7 +75,12 @@ func TestGen(t *testing.T) {
 		assert(t, data.lineCount+1, len(lines))
 
 		for _, line := range lines[:data.lineCount] {
-			assert(t, true, data.fields-1 <= strings.Count(line, ","))
+			if data.noComma {
+				assert(t, true, data.fields-1 == strings.Count(line, ","))
+			} else {
+				assert(t, true, data.fields-1 <= strings.Count(line, ","))
+			}
+
 			assert(t, true, len(line) > (data.fields-1+data.fields*data.minWordLength))
 			assert(t, true, len(line) < (data.fields*data.maxWordLength+data.fields))
 		}
