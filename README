@@ -1,4 +1,12 @@
 Go version of cut, with CSV files in mind.
 
- - defaults to , as delimiter
- - cat when no fields selected
+ Differences to GNU cut:
+  - Acts as cat when no fields selected
+
+ TODO:
+  - CSV mode
+    - quoted fields (containing delimiter)
+    - escaped delimiter in fields
+    - defaults to , as delimiter
+  - Argument parsing (long and short options)
+  - Error messages for invalid arguments
