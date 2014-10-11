@@ -164,6 +164,24 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // cutting csv values with LF rather than CRLF line ending
+		parameters: []string{"-e2-", "--line-end=LF"},
+		input: "first a,last b,favorite pet\x0a" +
+			"hans,hansen,moose\x0a" +
+			"peter,petersen,monarch\x0a",
+		expected: "last b,favorite pet\x0a" +
+			"hansen,moose\x0a" +
+			"petersen,monarch\x0a",
+	},
+	{ // cutting csv values with CRLF explicitly
+		parameters: []string{"-e2-", "--line-end=CRLF"},
+		input: "first a,last b,favorite pet\x0d\x0a" +
+			"hans,hansen,moose\x0d\x0a" +
+			"peter,petersen,monarch\x0d\x0a",
+		expected: "last b,favorite pet\x0d\x0a" +
+			"hansen,moose\x0d\x0a" +
+			"petersen,monarch\x0d\x0a",
+	},
 	{ // cutting csv values
 		parameters: []string{"-e2-"},
 		input: "first a,last a,favorite pet\x0d\x0a" +

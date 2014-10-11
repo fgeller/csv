@@ -142,6 +142,14 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		case strings.HasPrefix(argument, "--output-delimiter"):
 			outputDelimiter = argument[2:]
 
+		case strings.HasPrefix(argument, "--line-end="):
+			switch {
+			case argument[11:] == "LF":
+				lineEnd = string(LF)
+			case argument[11:] == "CRLF":
+				lineEnd = string([]rune{CR, LF})
+			}
+
 		case argument == "-n":
 			// ignore
 
