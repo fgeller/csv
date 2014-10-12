@@ -151,7 +151,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			outputDelimiter = rawArguments[index+1]
 			index += 1
 		case strings.HasPrefix(argument, "--output-delimiter="):
-			outputDelimiter = argument[19:] // TODO test fail
+			outputDelimiter = argument[19:]
 
 		case strings.HasPrefix(argument, "--line-end="):
 			switch {
