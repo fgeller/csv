@@ -421,7 +421,9 @@ func selectFieldsByName(parameters *parameters, headers []string) []int {
 
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReaderSize(input, 1024*1024)
-	bufferedOutput := bufio.NewWriter(output)
+	bufferedOutput := bufio.NewWriterSize(output, 1024*1024)
+	defer bufferedOutput.Flush()
+
 	header := true
 	selected := []int{}
 
@@ -438,9 +440,10 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 			header = false
 		}
 
-		collectedFields := collectCSVFields(fields, selected, parameters)
-		if len(collectedFields) > 0 {
-			newLine := ensureNewLine(strings.Join(collectedFields, parameters.outputDelimiter), parameters.lineEnd)
+		collected := collectCSVFields(fields, selected, parameters)
+
+		if len(collected) > 0 {
+			newLine := ensureNewLine(strings.Join(collected, parameters.outputDelimiter), parameters.lineEnd)
 
 			_, writeErr := bufferedOutput.WriteString(newLine)
 			if writeErr != nil {
