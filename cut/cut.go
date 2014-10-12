@@ -322,12 +322,11 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
-func findCSVFields(input *bufio.Reader, parameters *parameters) ([]string, error) {
-	found := make([]string, 0)
+func findCSVFields(input *bufio.Reader, found []string, word []rune, parameters *parameters) ([]string, error) {
+
 	inEscaped := false
 	lineEnd := parameters.lineEnd
 	lineEndRune := rune(lineEnd[len(lineEnd)-1])
-	word := make([]rune, 0)
 
 	for {
 		character, size, err := input.ReadRune()
@@ -341,7 +340,7 @@ func findCSVFields(input *bufio.Reader, parameters *parameters) ([]string, error
 			word = append(word, character)
 		case !inEscaped && character == COMMA:
 			found = append(found, string(word))
-			word = make([]rune, 0) // nil or word[:0] ??
+			word = word[:0] // re-uses
 
 		case !inEscaped && character == lineEndRune:
 			word = append(word, character)
@@ -427,9 +426,13 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	header := true
 	selected := []int{}
+	found := make([]string, 0, 20)
+	word := make([]rune, 0, 20)
 
 	for {
-		fields, err := findCSVFields(bufferedInput, parameters)
+		found = found[:0]
+		word = word[:0]
+		fields, err := findCSVFields(bufferedInput, found, word, parameters)
 
 		if header {
 			if 0 == len(parameters.ranges) && parameters.headerNames != "" {
