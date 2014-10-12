@@ -23,10 +23,7 @@ func (p *parameters) String() string {
 
 func randomASCIIByte(parameters *parameters) byte {
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	number := rand.Intn(95) + 32
-	if parameters.noComma && number == 44 {
-		number = 45
-	}
+	number := rand.Intn(25) + 97 // 97-122 a-z
 	return byte(number)
 }
 
