@@ -509,7 +509,7 @@ func cut(arguments []string, output io.Writer) {
 }
 
 func main() {
-	f, _ := os.Create("prof.out")
+	f, _ := os.Create("cut.cprof")
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
