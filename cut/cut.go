@@ -6,6 +6,7 @@ import "bufio"
 import "io"
 import "strings"
 import "strconv"
+import "runtime/pprof"
 
 const (
 	fields_message    string = "select only these fields"
@@ -505,5 +506,9 @@ func cut(arguments []string, output io.Writer) {
 }
 
 func main() {
+	f, _ := os.Create("prof.out")
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	cut(os.Args[1:], os.Stdout)
 }
