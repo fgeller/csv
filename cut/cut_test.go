@@ -195,13 +195,12 @@ dieter,frieda
 	},
 	{ // cutting csv values by column names without escaping
 		parameters: []string{"-Efirst,third", "--line-end=LF"},
-		input: `first,second,third
-albert,bert,claus
-dieter,emil,frieda`,
-		expected: `first,third
-albert,claus
-dieter,frieda
-`,
+		input: "first,second,third\x0a" +
+			"albert,bert,claus\x0a" +
+			"dieter,emil,frieda\x0a",
+		expected: "first,third\x0a" +
+			"albert,claus\x0a" +
+			"dieter,frieda\x0a",
 	},
 	{ // cutting csv values with CRLF explicitly
 		parameters: []string{"-e2-", "--line-end=CRLF"},
