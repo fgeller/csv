@@ -420,7 +420,8 @@ func selectFieldsByName(parameters *parameters, headers []string) []int {
 }
 
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReader(input)
+	bufferedInput := bufio.NewReaderSize(input, 1024*1024)
+	bufferedOutput := bufio.NewWriter(output)
 	header := true
 	selected := []int{}
 
@@ -441,7 +442,7 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 		if len(collectedFields) > 0 {
 			newLine := ensureNewLine(strings.Join(collectedFields, parameters.outputDelimiter), parameters.lineEnd)
 
-			_, writeErr := io.WriteString(output, newLine)
+			_, writeErr := bufferedOutput.WriteString(newLine)
 			if writeErr != nil {
 				fmt.Println("Encountered error while writing:", writeErr)
 				break
