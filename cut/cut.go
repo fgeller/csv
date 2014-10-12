@@ -1,6 +1,7 @@
 package main
 
 import "os"
+import "bytes"
 import "fmt"
 import "bufio"
 import "io"
@@ -14,10 +15,10 @@ const (
 )
 
 const (
-	DQUOTE rune = 0x22
-	COMMA  rune = 0x2c
-	CR     rune = 0x0d
-	LF     rune = 0x0a
+	DQUOTE byte = 0x22
+	COMMA  byte = 0x2c
+	CR     byte = 0x0d
+	LF     byte = 0x0a
 )
 
 const (
@@ -157,7 +158,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 			case argument[11:] == "LF":
 				lineEnd = string(LF)
 			case argument[11:] == "CRLF":
-				lineEnd = string([]rune{CR, LF})
+				lineEnd = string([]byte{CR, LF})
 			}
 
 		case argument == "-n":
@@ -181,7 +182,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 
 	switch {
 	case len(lineEnd) == 0 && mode == csvMode:
-		lineEnd = string([]rune{CR, LF})
+		lineEnd = string([]byte{CR, LF})
 	case len(lineEnd) == 0:
 		lineEnd = "\n"
 	}
@@ -322,40 +323,44 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
-func findCSVFields(input *bufio.Reader, found []string, word []rune, parameters *parameters) ([]string, error) {
+func findCSVFields(input *bufio.Reader, parameters *parameters) ([][]byte, error) {
 
 	inEscaped := false
-	lineEnd := parameters.lineEnd
-	lineEndRune := rune(lineEnd[len(lineEnd)-1])
+	lineEnd := []byte(parameters.lineEnd)
+	lineEndByte := lineEnd[len(lineEnd)-1]
+	found := make([][]byte, 0, 20)
+	word := make([]byte, 0, 20)
 
 	for {
-		character, size, err := input.ReadRune()
+		byte, err := input.ReadByte()
 
 		switch {
-		case !inEscaped && character == DQUOTE:
+		case !inEscaped && byte == DQUOTE:
 			inEscaped = true
-			word = append(word, character)
-		case inEscaped && character == DQUOTE:
-			inEscaped = false
-			word = append(word, character)
-		case !inEscaped && character == COMMA:
-			found = append(found, string(word))
-			word = word[:0] // re-uses
+			word = append(word, byte)
 
-		case !inEscaped && character == lineEndRune:
-			word = append(word, character)
-			if string(word[len(word)-len(lineEnd):]) == lineEnd {
-				found = append(found, string(word[:len(word)-len(lineEnd)]))
+		case inEscaped && byte == DQUOTE:
+			inEscaped = false
+			word = append(word, byte)
+
+		case !inEscaped && byte == COMMA:
+			found = append(found, word)
+			word = nil
+
+		case !inEscaped && byte == lineEndByte:
+			word = append(word, byte)
+			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
+				found = append(found, word[:len(word)-len(lineEnd)]) // minus line end
 				return found, err
 			}
 
-		case size > 0:
-			word = append(word, character)
+		case err == nil:
+			word = append(word, byte)
 		}
 
 		if err != nil {
 			if len(word) > 0 {
-				found = append(found, string(word))
+				found = append(found, word)
 			}
 			return found, err
 		}
@@ -363,12 +368,12 @@ func findCSVFields(input *bufio.Reader, found []string, word []rune, parameters 
 
 }
 
-func collectCSVFields(fields []string, selected []int, parameters *parameters) []string {
+func collectCSVFields(fields [][]byte, selected []int, parameters *parameters) [][]byte {
 	if 0 == len(selected) || 0 == len(fields) {
 		return fields
 	}
 
-	collectedFields := make([]string, len(selected))
+	collectedFields := make([][]byte, len(selected))
 	for index, selectedField := range selected {
 		collectedFields[index] = fields[selectedField-1]
 	}
@@ -419,6 +424,19 @@ func selectFieldsByName(parameters *parameters, headers []string) []int {
 	return selected
 }
 
+func findSelectedCSVFields(fields [][]byte, parameters *parameters) []int {
+
+	if 0 == len(parameters.ranges) && parameters.headerNames != "" {
+		fieldStrings := make([]string, len(fields))
+		for index, field := range fields {
+			fieldStrings[index] = string(field)
+		}
+		return selectFieldsByName(parameters, fieldStrings)
+	}
+
+	return selectedFields(parameters, len(fields))
+}
+
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReaderSize(input, 1024*1024)
 	bufferedOutput := bufio.NewWriterSize(output, 1024*1024)
@@ -426,30 +444,22 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	header := true
 	selected := []int{}
-	found := make([]string, 0, 20)
-	word := make([]rune, 0, 20)
+	lineEnd := []byte(parameters.lineEnd)
+	outputDelimiter := []byte(parameters.outputDelimiter)
 
 	for {
-		found = found[:0]
-		word = word[:0]
-		fields, err := findCSVFields(bufferedInput, found, word, parameters)
-
+		fields, err := findCSVFields(bufferedInput, parameters)
 		if header {
-			if 0 == len(parameters.ranges) && parameters.headerNames != "" {
-				selected = selectFieldsByName(parameters, fields)
-			} else {
-				selected = selectedFields(parameters, len(fields))
-			}
-
+			selected = findSelectedCSVFields(fields, parameters)
 			header = false
 		}
 
 		collected := collectCSVFields(fields, selected, parameters)
-
 		if len(collected) > 0 {
-			newLine := ensureNewLine(strings.Join(collected, parameters.outputDelimiter), parameters.lineEnd)
+			joinedBytes := bytes.Join(collected, outputDelimiter)
+			newLine := bytes.Join([][]byte{joinedBytes, lineEnd}, []byte{})
 
-			_, writeErr := bufferedOutput.WriteString(newLine)
+			_, writeErr := bufferedOutput.Write(newLine)
 			if writeErr != nil {
 				fmt.Println("Encountered error while writing:", writeErr)
 				break
