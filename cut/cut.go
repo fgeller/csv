@@ -325,7 +325,8 @@ func collectFields(line string, parameters *parameters) []string {
 
 func writeLine(output *bufio.Writer, fields [][]byte, selected []int, lineEnd []byte, outputDelimiter []byte) error {
 	for index, selectedField := range selected {
-		_, err := output.Write(fields[(selectedField-1)*2])
+
+		_, err := output.Write(fields[selectedField-1])
 		if err != nil {
 			return err
 		}
@@ -363,13 +364,13 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 
 		inHeader = false
 		if 0 == len(parameters.ranges) && parameters.headerNames != "" {
-			fieldStrings := make([]string, len(found)/2)
-			for index := 0; index < len(found)/2; index += 1 {
-				fieldStrings[index] = string(found[index*2])
+			fieldStrings := make([]string, len(found))
+			for index := 0; index < len(found); index += 1 {
+				fieldStrings[index] = string(found[index])
 			}
 			selected = selectFieldsByName(parameters, fieldStrings)
 		} else {
-			selected = selectedFields(parameters, len(found)/2)
+			selected = selectedFields(parameters, len(found))
 		}
 	}
 
@@ -387,13 +388,13 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 			word = append(word, byte)
 
 		case !inEscaped && byte == COMMA:
-			found = append(found, word, outputDelimiter)
+			found = append(found, word)
 			word = nil
 
 		case !inEscaped && byte == lineEndByte:
 			word = append(word, byte)
 			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				found = append(found, word[:len(word)-len(lineEnd)], lineEnd)
+				found = append(found, word[:len(word)-len(lineEnd)])
 				setSelected()
 				err := writeLine(output, found, selected, lineEnd, outputDelimiter)
 				if err != nil {
