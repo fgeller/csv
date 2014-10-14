@@ -383,39 +383,45 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 		}
 	}
 
+	wordCount := 0
+	appendWord := func() {
+		wordCount += 1
+		found = append(found, word)
+		word = nil
+	}
+
 	for {
-		byte, err := input.ReadByte()
+		char, err := input.ReadByte()
 
 		switch {
 
-		case !inEscaped && byte == DQUOTE:
+		case !inEscaped && char == DQUOTE:
 			inEscaped = true
-			word = append(word, byte)
+			word = append(word, char)
 
-		case inEscaped && byte == DQUOTE:
+		case inEscaped && char == DQUOTE:
 			inEscaped = false
-			word = append(word, byte)
+			word = append(word, char)
 
-		case !inEscaped && byte == COMMA:
-			found = append(found, word)
-			word = nil
+		case !inEscaped && char == COMMA:
+			appendWord()
 
-		case !inEscaped && byte == lineEndByte:
-			word = append(word, byte)
+		case !inEscaped && char == lineEndByte:
+			word = append(word, char)
 			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				found = append(found, word[:len(word)-len(lineEnd)])
+				word = word[:len(word)-len(lineEnd)]
+				appendWord()
 				writeLine()
-				word = word[:0]
 				found = found[:0]
 			}
 
 		case err == nil:
-			word = append(word, byte)
+			word = append(word, char)
 		}
 
 		if err != nil {
 			if len(word) > 0 {
-				found = append(found, word)
+				appendWord()
 				writeLine()
 			}
 			break
