@@ -1,7 +1,6 @@
 package main
 
 import "os"
-import "bytes"
 import "fmt"
 import "bufio"
 import "io"
@@ -340,67 +339,83 @@ func collectFields(line string, parameters *parameters) []string {
 func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *parameters) {
 	outputDelimiter := []byte(parameters.outputDelimiter)
 	lineEnd := []byte(parameters.lineEnd)
-	lineEndByte := lineEnd[len(lineEnd)-1]
-	word := make([]byte, 0, 20)
 	inEscaped := false
+	eolMatchIndex := 0
+	eolMatch := make([]bool, len(lineEnd))
 
-	wordCount := 0
-	writeOut := func() bool {
-		if isSelected(parameters, wordCount) { // cache the selection?
-			output.Write(word)
-			word = word[:0]
-			return true
+	resetEolMatch := func() {
+		// TODO
+		// if eolMatchIndex > 0 && eolMatchIndex < len(lineEnd) {
+		//	// fmt.Printf("------Should flush out %s bytes.\n", eolMatchIndex)
+		// }
+
+		eolMatchIndex = 0
+		for index := range eolMatch {
+			eolMatch[index] = false
 		}
-
-		word = word[:0]
-		return false
 	}
 
-	writeWord := func() {
-		wordCount += 1
-		if writeOut() {
+	wordCount := 1
+	writeOut := func(char byte) {
+		if isSelected(parameters, wordCount) { // cache the selection?
+			output.WriteByte(char)
+		}
+	}
+
+	finishWord := func() {
+		if isSelected(parameters, wordCount) { // cache the selection?
 			output.Write(outputDelimiter)
 		}
+		wordCount += 1
 	}
-	writeLine := func() {
-		writeOut()
-		wordCount = 0
+
+	finishLine := func() {
 		output.Write(lineEnd)
+		wordCount = 1
 	}
 
 	for {
 		char, err := input.ReadByte()
 
+		if err == io.EOF || eolMatchIndex == len(lineEnd) {
+			finishLine()
+			resetEolMatch()
+		}
+		if err == io.EOF {
+			break
+		}
+
+		if !inEscaped && char == lineEnd[eolMatchIndex] {
+			eolMatch[eolMatchIndex] = true
+			eolMatchIndex += 1
+		} else {
+			resetEolMatch()
+		}
+
 		switch {
 
 		case !inEscaped && char == DQUOTE:
 			inEscaped = true
-			word = append(word, char)
+			writeOut(char)
 
 		case inEscaped && char == DQUOTE:
 			inEscaped = false
-			word = append(word, char)
+			writeOut(char)
 
 		case !inEscaped && char == COMMA:
-			writeWord()
+			finishWord()
 
-		case !inEscaped && char == lineEndByte:
-			word = append(word, char)
-			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				word = word[:len(word)-len(lineEnd)]
-				writeLine()
-			}
+		case !inEscaped && eolMatchIndex == len(lineEnd): // at EOL
+			continue
 
 		case err == nil:
-			word = append(word, char)
+			if eolMatchIndex > 0 {
+			} else {
+				writeOut(char)
+			}
+
 		}
 
-		if err != nil {
-			if len(word) > 0 {
-				writeLine()
-			}
-			break
-		}
 	}
 
 }
