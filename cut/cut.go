@@ -344,9 +344,16 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 	word := make([]byte, 0, 20)
 	inEscaped := false
 
+	inHeader := true
+	selected := make([]bool, 0, 20)
+
 	wordCount := 0
 	writeOut := func() bool {
-		if isSelected(parameters, wordCount) { // cache the selection?
+		if inHeader {
+			selected = append(selected, isSelected(parameters, wordCount))
+		}
+
+		if selected[wordCount-1] {
 			output.Write(word)
 			word = word[:0]
 			return true
@@ -354,18 +361,6 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 
 		word = word[:0]
 		return false
-	}
-
-	writeWord := func() {
-		wordCount += 1
-		if writeOut() {
-			output.Write(outputDelimiter)
-		}
-	}
-	writeLine := func() {
-		writeOut()
-		wordCount = 0
-		output.Write(lineEnd)
 	}
 
 	for {
@@ -382,13 +377,19 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 			word = append(word, char)
 
 		case !inEscaped && char == COMMA:
-			writeWord()
+			wordCount += 1
+			if writeOut() {
+				output.Write(outputDelimiter)
+			}
 
 		case !inEscaped && char == lineEndByte:
 			word = append(word, char)
 			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
 				word = word[:len(word)-len(lineEnd)]
-				writeLine()
+				writeOut()
+				wordCount = 0
+				output.Write(lineEnd)
+				inHeader = false
 			}
 
 		case err == nil:
@@ -397,7 +398,10 @@ func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *paramet
 
 		if err != nil {
 			if len(word) > 0 {
-				writeLine()
+				writeOut()
+				wordCount = 0
+				output.Write(lineEnd)
+				inHeader = false
 			}
 			break
 		}
