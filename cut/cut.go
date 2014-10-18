@@ -8,6 +8,7 @@ import "io"
 import "strings"
 import "strconv"
 import "runtime/pprof"
+import "log"
 
 const (
 	fields_message    string = "select only these fields"
@@ -64,6 +65,7 @@ type parameters struct {
 	input           []*os.File
 	headerNames     string
 	lineEnd         string
+	cpuProfile      bool
 }
 
 func openInput(fileNames []string) ([]*os.File, error) {
@@ -90,6 +92,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 	complement := false
 	headerNames := ""
 	lineEnd := ""
+	cpuProfile := false
 
 	for index := 0; index < len(rawArguments); index += 1 {
 		argument := rawArguments[index]
@@ -161,6 +164,9 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 				lineEnd = string([]byte{CR, LF})
 			}
 
+		case argument == "--cpuprofile":
+			cpuProfile = true
+
 		case argument == "-n":
 			// ignore
 
@@ -202,6 +208,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		complement:      complement,
 		headerNames:     headerNames,
 		lineEnd:         lineEnd,
+		cpuProfile:      cpuProfile,
 	}, nil
 }
 
@@ -503,15 +510,22 @@ func cut(arguments []string, output io.Writer) {
 		return
 	}
 
+	if parameters.cpuProfile {
+		fmt.Printf("CPU profiling enabled.\n")
+		f, err := os.Create("cut.cprof")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	for _, file := range parameters.input {
 		cutFile(file, output, parameters)
 	}
 }
 
 func main() {
-	f, _ := os.Create("cut.cprof")
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
-
 	cut(os.Args[1:], os.Stdout)
 }
