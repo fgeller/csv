@@ -361,7 +361,7 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	outputDelimiter := []byte(parameters.outputDelimiter)
 	lineEnd := []byte(parameters.lineEnd)
 	lineEndByte := lineEnd[len(lineEnd)-1]
-	word := make([]byte, 0, 20)
+	word := make([]byte, 0, 30)
 	inEscaped := false
 	inHeader := true
 	selected := make([]bool, 0, 20)
