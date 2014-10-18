@@ -337,78 +337,6 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
-func cutCSVFields(input *bufio.Reader, output *bufio.Writer, parameters *parameters) {
-	outputDelimiter := []byte(parameters.outputDelimiter)
-	lineEnd := []byte(parameters.lineEnd)
-	lineEndByte := lineEnd[len(lineEnd)-1]
-	word := make([]byte, 0, 20)
-	inEscaped := false
-
-	inHeader := true
-	selected := make([]bool, 0, 20)
-
-	wordCount := 0
-	writeOut := func() bool {
-		if inHeader {
-			selected = append(selected, isSelected(parameters, wordCount))
-		}
-
-		if selected[wordCount-1] {
-			output.Write(word)
-			word = word[:0]
-			return true
-		}
-
-		word = word[:0]
-		return false
-	}
-
-	for {
-		char, err := input.ReadByte()
-
-		switch {
-
-		case !inEscaped && char == DQUOTE:
-			inEscaped = true
-			word = append(word, char)
-
-		case inEscaped && char == DQUOTE:
-			inEscaped = false
-			word = append(word, char)
-
-		case !inEscaped && char == COMMA:
-			wordCount += 1
-			if writeOut() {
-				output.Write(outputDelimiter)
-			}
-
-		case !inEscaped && char == lineEndByte:
-			word = append(word, char)
-			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				word = word[:len(word)-len(lineEnd)]
-				writeOut()
-				wordCount = 0
-				output.Write(lineEnd)
-				inHeader = false
-			}
-
-		case err == nil:
-			word = append(word, char)
-		}
-
-		if err != nil {
-			if len(word) > 0 {
-				writeOut()
-				wordCount = 0
-				output.Write(lineEnd)
-				inHeader = false
-			}
-			break
-		}
-	}
-
-}
-
 func pickSelected(fields [][]byte, selected []int, parameters *parameters) [][]byte {
 	if 0 == len(selected) || 0 == len(fields) {
 		return fields
@@ -470,7 +398,71 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedOutput := bufio.NewWriterSize(output, 1024*1024)
 	defer bufferedOutput.Flush()
 
-	cutCSVFields(bufferedInput, bufferedOutput, parameters)
+	outputDelimiter := []byte(parameters.outputDelimiter)
+	lineEnd := []byte(parameters.lineEnd)
+	lineEndByte := lineEnd[len(lineEnd)-1]
+	word := make([]byte, 0, 20)
+	inEscaped := false
+	inHeader := true
+	selected := make([]bool, 0, 20)
+
+	wordCount := 0
+	writeOut := func() bool {
+		if inHeader {
+			selected = append(selected, isSelected(parameters, wordCount))
+		}
+		if selected[wordCount-1] {
+			bufferedOutput.Write(word)
+			word = word[:0]
+			return true
+		}
+
+		word = word[:0]
+		return false
+	}
+
+	for {
+		char, err := bufferedInput.ReadByte()
+
+		switch {
+
+		case !inEscaped && char == DQUOTE:
+			inEscaped = true
+			word = append(word, char)
+
+		case inEscaped && char == DQUOTE:
+			inEscaped = false
+			word = append(word, char)
+
+		case !inEscaped && char == COMMA:
+			wordCount += 1
+			if writeOut() {
+				bufferedOutput.Write(outputDelimiter)
+			}
+
+		case !inEscaped && char == lineEndByte:
+			word = append(word, char)
+			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
+				word = word[:len(word)-len(lineEnd)]
+				writeOut()
+				inHeader = false
+				wordCount = 0
+				bufferedOutput.Write(lineEnd)
+			}
+
+		case err == nil:
+			word = append(word, char)
+		}
+
+		if err != nil {
+			if len(word) > 0 {
+				writeOut()
+				wordCount = 0
+				bufferedOutput.Write(lineEnd)
+			}
+			break
+		}
+	}
 }
 
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
