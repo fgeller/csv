@@ -309,21 +309,6 @@ func collectCharacters(line string, parameters *parameters) []string {
 	return collectedCharacters
 }
 
-func collectBytes(line string, parameters *parameters) []string {
-	bytes := []byte(line)
-	selected := selectedFields(parameters, len(bytes))
-	if 0 == len(selected) {
-		return []string{line}
-	}
-
-	collectedCharacters := make([]string, len(selected))
-	for index, selectedField := range selected {
-		collectedCharacters[index] = string(bytes[selectedField-1 : selectedField])
-	}
-
-	return collectedCharacters
-}
-
 func collectFields(line string, parameters *parameters) []string {
 	if !strings.Contains(line, parameters.inputDelimiter) {
 		return []string{line}
@@ -349,8 +334,6 @@ func cutLine(line string, parameters *parameters) string {
 	switch {
 	case parameters.mode == fieldMode:
 		collectedFields = collectFields(line, parameters)
-	case parameters.mode == byteMode:
-		collectedFields = collectBytes(line, parameters)
 	case parameters.mode == characterMode:
 		collectedFields = collectCharacters(line, parameters)
 	}
@@ -449,10 +432,54 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 }
 
+func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
+	bufferedInput := bufio.NewReaderSize(input, 4096)
+	bufferedOutput := bufio.NewWriterSize(output, 4096)
+	defer bufferedOutput.Flush()
+
+	buffer := make([]byte, 4096*1000)
+
+	inHeader := true
+	selected := make([]bool, 0, 20)
+	byteCount := 1
+
+	for {
+		count, err := bufferedInput.Read(buffer)
+
+		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
+			char := buffer[bufferIndex]
+
+			if inHeader {
+				selected = append(selected, isSelected(parameters, byteCount))
+			}
+
+			if selected[byteCount-1] {
+				bufferedOutput.WriteByte(char)
+			}
+
+			if char == LF { // TODO: different line endings?
+				inHeader = false
+				byteCount = 1
+			} else {
+				byteCount += 1
+			}
+		}
+
+		if err != nil {
+			bufferedOutput.WriteByte(LF)
+			break
+		}
+	}
+}
+
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	// TODO: consolidate the three modes
-	if parameters.mode == csvMode {
+	switch {
+	case parameters.mode == byteMode:
+		cutBytes(input, output, parameters)
+		return
+	case parameters.mode == csvMode:
 		cutCSVFile(input, output, parameters)
 		return
 	}
