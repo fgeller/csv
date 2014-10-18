@@ -369,9 +369,11 @@ func ensureNewLine(line string, lineEnd string) string {
 }
 
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReaderSize(input, 1024*1024)
-	bufferedOutput := bufio.NewWriterSize(output, 1024*1024)
+	bufferedInput := bufio.NewReaderSize(input, 4096)
+	bufferedOutput := bufio.NewWriterSize(output, 4096)
 	defer bufferedOutput.Flush()
+
+	buffer := make([]byte, 4096*1000)
 
 	outputDelimiter := []byte(parameters.outputDelimiter)
 	lineEnd := []byte(parameters.lineEnd)
@@ -383,6 +385,7 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	wordCount := 0
 	writeOut := func() bool {
+
 		if inHeader {
 			selected = append(selected, isSelected(parameters, wordCount))
 		}
@@ -397,36 +400,42 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 
 	for {
-		char, err := bufferedInput.ReadByte()
+		count, err := bufferedInput.Read(buffer)
 
-		switch {
+		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
+			char := buffer[bufferIndex]
 
-		case !inEscaped && char == DQUOTE:
-			inEscaped = true
-			word = append(word, char)
+			switch {
 
-		case inEscaped && char == DQUOTE:
-			inEscaped = false
-			word = append(word, char)
+			case !inEscaped && char == DQUOTE:
+				inEscaped = true
+				word = append(word, char)
 
-		case !inEscaped && char == COMMA:
-			wordCount += 1
-			if writeOut() {
-				bufferedOutput.Write(outputDelimiter)
+			case inEscaped && char == DQUOTE:
+				inEscaped = false
+				word = append(word, char)
+
+			case !inEscaped && char == COMMA:
+				wordCount += 1
+				if writeOut() {
+					bufferedOutput.Write(outputDelimiter)
+				}
+
+			case !inEscaped && char == lineEndByte:
+				word = append(word, char)
+				wordCount += 1
+				if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
+					word = word[:len(word)-len(lineEnd)]
+					writeOut()
+					inHeader = false
+					wordCount = 0
+					bufferedOutput.Write(lineEnd)
+				}
+
+			case true:
+				word = append(word, char)
 			}
 
-		case !inEscaped && char == lineEndByte:
-			word = append(word, char)
-			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				word = word[:len(word)-len(lineEnd)]
-				writeOut()
-				inHeader = false
-				wordCount = 0
-				bufferedOutput.Write(lineEnd)
-			}
-
-		case err == nil:
-			word = append(word, char)
 		}
 
 		if err != nil {
