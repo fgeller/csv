@@ -344,19 +344,6 @@ func collectFields(line string, parameters *parameters) []string {
 	return collectedFields
 }
 
-func pickSelected(fields [][]byte, selected []int, parameters *parameters) [][]byte {
-	if 0 == len(selected) || 0 == len(fields) {
-		return fields
-	}
-
-	collectedFields := make([][]byte, len(selected))
-	for index, selectedField := range selected {
-		collectedFields[index] = fields[selectedField-1]
-	}
-
-	return collectedFields
-}
-
 func cutLine(line string, parameters *parameters) string {
 	collectedFields := []string{}
 	switch {
@@ -379,25 +366,6 @@ func skipLine(line string, parameters *parameters) bool {
 
 func ensureNewLine(line string, lineEnd string) string {
 	return fmt.Sprintf("%v%v", strings.TrimSuffix(line, lineEnd), lineEnd)
-}
-
-func selectFieldsByName(parameters *parameters, headers []string) []int {
-	rawNames := strings.Split(parameters.headerNames, ",")
-	selectedNames := make([]string, len(rawNames))
-	for index, rawName := range rawNames {
-		selectedNames[index] = strings.Trim(rawName, "\"")
-	}
-
-	selected := make([]int, 0)
-	for index, header := range headers {
-		for _, selectedName := range selectedNames {
-			if selectedName == header {
-				selected = append(selected, index+1) // :|
-			}
-		}
-	}
-
-	return selected
 }
 
 func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
