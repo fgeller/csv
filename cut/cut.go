@@ -294,21 +294,6 @@ outer:
 	return selected
 }
 
-func collectCharacters(line string, parameters *parameters) []string {
-	runes := []rune(line)
-	selected := selectedFields(parameters, len(runes))
-	if 0 == len(selected) {
-		return []string{line}
-	}
-
-	collectedCharacters := make([]string, len(selected))
-	for index, selectedField := range selected {
-		collectedCharacters[index] = string(runes[selectedField-1 : selectedField])
-	}
-
-	return collectedCharacters
-}
-
 func collectFields(line string, parameters *parameters) []string {
 	if !strings.Contains(line, parameters.inputDelimiter) {
 		return []string{line}
@@ -330,14 +315,7 @@ func collectFields(line string, parameters *parameters) []string {
 }
 
 func cutLine(line string, parameters *parameters) string {
-	collectedFields := []string{}
-	switch {
-	case parameters.mode == fieldMode:
-		collectedFields = collectFields(line, parameters)
-	case parameters.mode == characterMode:
-		collectedFields = collectCharacters(line, parameters)
-	}
-
+	collectedFields := collectFields(line, parameters)
 	return strings.Join(collectedFields, parameters.outputDelimiter)
 }
 
@@ -439,6 +417,10 @@ func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
 
 	buffer := make([]byte, 4096*1000)
 
+	firstWrittenByte := true
+	shouldInsertSeparator := len(parameters.outputDelimiter) > 0
+	separator := []byte(parameters.outputDelimiter)
+
 	inHeader := true
 	selected := make([]bool, 0, 20)
 	byteCount := 1
@@ -454,13 +436,21 @@ func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
 			}
 
 			if selected[byteCount-1] {
+				if shouldInsertSeparator && !firstWrittenByte {
+					bufferedOutput.Write(separator)
+				}
+				firstWrittenByte = false
 				bufferedOutput.WriteByte(char)
 			}
 
 			if char == LF { // TODO: different line endings?
 				inHeader = false
+				firstWrittenByte = true
 				byteCount = 1
 			} else {
+				if shouldInsertSeparator && selected[byteCount-1] {
+					bufferedOutput.Write(separator)
+				}
 				byteCount += 1
 			}
 		}
@@ -472,10 +462,57 @@ func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 }
 
+func cutCharacters(input io.Reader, output io.Writer, parameters *parameters) {
+	bufferedInput := bufio.NewReaderSize(input, 4096)
+	bufferedOutput := bufio.NewWriterSize(output, 4096)
+	defer bufferedOutput.Flush()
+
+	firstWrittenRune := true
+	shouldInsertSeparator := len(parameters.outputDelimiter) > 0
+	separator := []byte(parameters.outputDelimiter)
+
+	inHeader := true
+	selected := make([]bool, 0, 20)
+	runeCount := 1
+
+	for {
+		rune, size, err := bufferedInput.ReadRune()
+
+		if size > 0 && err == nil {
+			if inHeader {
+				selected = append(selected, isSelected(parameters, runeCount))
+			}
+
+			if selected[runeCount-1] {
+				if shouldInsertSeparator && !firstWrittenRune {
+					bufferedOutput.Write(separator)
+				}
+				firstWrittenRune = false
+				bufferedOutput.WriteRune(rune)
+			}
+
+			if rune == '\n' { // TODO: different line endings?
+				inHeader = false
+				firstWrittenRune = true
+				runeCount = 1
+			} else {
+				runeCount += 1
+			}
+
+		} else {
+			bufferedOutput.WriteByte(LF)
+			break
+		}
+	}
+}
+
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	// TODO: consolidate the three modes
 	switch {
+	case parameters.mode == characterMode:
+		cutCharacters(input, output, parameters)
+		return
 	case parameters.mode == byteMode:
 		cutBytes(input, output, parameters)
 		return
