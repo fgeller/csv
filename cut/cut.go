@@ -474,7 +474,7 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
-	// :|
+	// TODO: consolidate the three modes
 	if parameters.mode == csvMode {
 		cutCSVFile(input, output, parameters)
 		return
