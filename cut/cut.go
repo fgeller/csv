@@ -277,62 +277,6 @@ func isSelected(parameters *parameters, field int) bool {
 	return false
 }
 
-// TODO: can we do this lazily?
-func selectedFields(parameters *parameters, total int) []int {
-	selected := make([]int, 0)
-outer:
-	for field := 1; field <= total; field += 1 {
-		for _, aRange := range parameters.ranges {
-			contained := aRange.Contains(field)
-			switch {
-			case !parameters.complement && contained:
-				selected = append(selected, field)
-				continue outer
-			case parameters.complement && !contained:
-				selected = append(selected, field)
-				continue outer
-			}
-		}
-	}
-
-	return selected
-}
-
-func collectFields(line string, parameters *parameters) []string {
-	if !strings.Contains(line, parameters.inputDelimiter) {
-		return []string{line}
-	}
-
-	fields := strings.Split(line, parameters.inputDelimiter)
-	selected := selectedFields(parameters, len(fields))
-
-	if 0 == len(selected) {
-		return []string{line}
-	}
-
-	collectedFields := make([]string, len(selected))
-	for index, selectedField := range selected {
-		collectedFields[index] = fields[selectedField-1]
-	}
-
-	return collectedFields
-}
-
-func cutLine(line string, parameters *parameters) string {
-	collectedFields := collectFields(line, parameters)
-	return strings.Join(collectedFields, parameters.outputDelimiter)
-}
-
-func skipLine(line string, parameters *parameters) bool {
-	return len(line) > 0 &&
-		parameters.delimitedOnly &&
-		!strings.Contains(line, parameters.inputDelimiter)
-}
-
-func ensureNewLine(line string, lineEnd string) string {
-	return fmt.Sprintf("%v%v", strings.TrimSuffix(line, lineEnd), lineEnd)
-}
-
 func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReaderSize(input, 4096)
 	bufferedOutput := bufio.NewWriterSize(output, 4096)
@@ -602,43 +546,15 @@ func cutCharacters(input io.Reader, output io.Writer, parameters *parameters) {
 }
 
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
-
-	// TODO: consolidate the three modes
 	switch {
 	case parameters.mode == characterMode:
 		cutCharacters(input, output, parameters)
-		return
 	case parameters.mode == byteMode:
 		cutBytes(input, output, parameters)
-		return
 	case parameters.mode == fieldMode:
 		cutFields(input, output, parameters)
-		return
 	case parameters.mode == csvMode:
 		cutCSV(input, output, parameters)
-		return
-	}
-
-	reader := bufio.NewReader(input)
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil && err != io.EOF {
-			fmt.Println("Encountered error while reading:", err)
-		}
-
-		if !skipLine(line, parameters) {
-			newLine := ensureNewLine(cutLine(line, parameters), parameters.lineEnd)
-			_, writeErr := io.WriteString(output, newLine)
-			if writeErr != nil {
-				fmt.Println("Encountered error while writing:", writeErr)
-				break
-			}
-		}
-
-		if err != nil {
-			break
-		}
 	}
 }
 
