@@ -84,7 +84,7 @@ func openInput(fileNames []string) ([]*os.File, error) {
 // TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
 	ranges := ""
-	mode := fieldMode
+	mode := csvMode // TODO: Default to csv mode
 	inputDelimiter := ""
 	outputDelimiter := ""
 	fileNames := []string{}
@@ -260,6 +260,10 @@ func parseRanges(rawRanges string) []Range {
 }
 
 func isSelected(parameters *parameters, field int) bool {
+	if len(parameters.ranges) == 0 {
+		return true
+	}
+
 	for _, aRange := range parameters.ranges {
 		contained := aRange.Contains(field)
 		switch {
@@ -329,7 +333,7 @@ func ensureNewLine(line string, lineEnd string) string {
 	return fmt.Sprintf("%v%v", strings.TrimSuffix(line, lineEnd), lineEnd)
 }
 
-func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
+func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReaderSize(input, 4096)
 	bufferedOutput := bufio.NewWriterSize(output, 4096)
 	defer bufferedOutput.Flush()
@@ -344,11 +348,12 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 	inHeader := true
 	selected := make([]bool, 0, 20)
 
-	wordCount := 0
+	wordCount := 1
 	writeOut := func() bool {
 
 		if inHeader {
-			selected = append(selected, isSelected(parameters, wordCount))
+			t := isSelected(parameters, wordCount)
+			selected = append(selected, t)
 		}
 		if selected[wordCount-1] {
 			bufferedOutput.Write(word)
@@ -376,20 +381,19 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 				inEscaped = false
 				word = append(word, char)
 
-			case !inEscaped && char == COMMA:
-				wordCount += 1
+			case !inEscaped && char == COMMA: // TODO: This should be based on the input delimiter
 				if writeOut() {
-					bufferedOutput.Write(outputDelimiter)
+					bufferedOutput.Write(outputDelimiter) // TODO: Should not happend at end of line
 				}
+				wordCount += 1
 
 			case !inEscaped && char == lineEndByte:
 				word = append(word, char)
-				wordCount += 1
 				if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
 					word = word[:len(word)-len(lineEnd)]
 					writeOut()
 					inHeader = false
-					wordCount = 0
+					wordCount = 1
 					bufferedOutput.Write(lineEnd)
 				}
 
@@ -403,6 +407,97 @@ func cutCSVFile(input io.Reader, output io.Writer, parameters *parameters) {
 			if len(word) > 0 {
 				writeOut()
 				wordCount = 0
+				bufferedOutput.Write(lineEnd)
+			}
+			break
+		}
+	}
+}
+
+func cutFields(input io.Reader, output io.Writer, parameters *parameters) {
+	bufferedInput := bufio.NewReaderSize(input, 4096)
+	bufferedOutput := bufio.NewWriterSize(output, 4096)
+	defer bufferedOutput.Flush()
+
+	buffer := make([]byte, 4096*1000)
+	field := make([]byte, 0, 30)
+	selected := make([]bool, 0, 20)
+
+	inputDelimiter := []byte(parameters.inputDelimiter)
+	inputDelimiterEndByte := inputDelimiter[len(inputDelimiter)-1]
+
+	outputDelimiter := []byte(parameters.outputDelimiter)
+
+	lineEnd := []byte(parameters.lineEnd)
+	lineEndByte := lineEnd[len(lineEnd)-1]
+
+	firstWordWritten := false
+	haveSeenDelimiter := false
+	inHeader := true
+	fieldCount := 1
+
+	writeOut := func(eol bool) bool {
+		if inHeader {
+			selected = append(selected, isSelected(parameters, fieldCount))
+		}
+
+		force := eol && !haveSeenDelimiter && !parameters.delimitedOnly
+
+		if force || selected[fieldCount-1] && (haveSeenDelimiter || !parameters.delimitedOnly) {
+			if firstWordWritten {
+				bufferedOutput.Write(outputDelimiter)
+			}
+
+			bufferedOutput.Write(field)
+			firstWordWritten = true
+			field = field[:0]
+			return true
+		}
+
+		field = field[:0]
+		return false
+	}
+
+	for {
+		count, err := bufferedInput.Read(buffer)
+
+		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
+			char := buffer[bufferIndex]
+
+			switch {
+
+			case char == inputDelimiterEndByte: // TODO: test support for multi byte
+				field = append(field, char)
+				if bytes.Equal(field[len(field)-len(inputDelimiter):], inputDelimiter) {
+					field = field[:len(field)-len(inputDelimiter)]
+					haveSeenDelimiter = true
+					writeOut(false)
+					fieldCount += 1
+				}
+
+			case char == lineEndByte: // TODO: test support for multi byte
+				field = append(field, char)
+				if bytes.Equal(field[len(field)-len(lineEnd):], lineEnd) {
+					field = field[:len(field)-len(lineEnd)]
+					writeOut(true)
+					if firstWordWritten {
+						bufferedOutput.Write(lineEnd)
+					}
+					inHeader = false
+					fieldCount = 1
+					firstWordWritten = false
+					haveSeenDelimiter = false
+				}
+
+			case true:
+				field = append(field, char)
+			}
+
+		}
+
+		if err != nil {
+			if len(field) > 0 {
+				writeOut(true)
 				bufferedOutput.Write(lineEnd)
 			}
 			break
@@ -516,8 +611,11 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	case parameters.mode == byteMode:
 		cutBytes(input, output, parameters)
 		return
+	case parameters.mode == fieldMode:
+		cutFields(input, output, parameters)
+		return
 	case parameters.mode == csvMode:
-		cutCSVFile(input, output, parameters)
+		cutCSV(input, output, parameters)
 		return
 	}
 

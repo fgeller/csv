@@ -8,6 +8,7 @@ import "reflect"
 import "strings"
 
 func equal(t *testing.T, expected interface{}, actual interface{}) {
+
 	if !reflect.DeepEqual(expected, actual) {
 		t.Error(
 			"Expected", fmt.Sprintf("[%v]", expected),
@@ -53,7 +54,7 @@ func TestDelimiterArgumentParsing(t *testing.T) {
 	equal(t, ",", arguments.inputDelimiter)
 
 	arguments, _ = parseArguments([]string{})
-	equal(t, "\t", arguments.inputDelimiter)
+	equal(t, ",", arguments.inputDelimiter)
 }
 
 func TestFileNameArgumentParsing(t *testing.T) {
@@ -76,14 +77,6 @@ var cutTests = []struct {
 	input      string
 	expected   string
 }{
-	{ // full file when no fields
-		parameters: []string{"-d,"},
-		input:      fullFile,
-		expected: `first name,last name,favorite pet
-hans,hansen,moose
-peter,petersen,monarch
-`,
-	},
 	{ // full file when no delimiter XXXX
 		parameters: []string{"-dx", "-f1"},
 		input:      fullFile,
@@ -312,7 +305,7 @@ peter,petersen,monarch
 	defer input.Close()
 	output := bytes.NewBuffer(nil)
 
-	cut([]string{fileName}, output)
+	cut([]string{fileName, "--line-end=LF"}, output)
 
 	equal(t, string(contents), output.String())
 }
@@ -328,7 +321,7 @@ peter,petersen,monarch
 	defer input.Close()
 	output := bytes.NewBuffer(nil)
 
-	cut([]string{fileName, fileName}, output)
+	cut([]string{fileName, fileName, "--line-end=LF"}, output)
 
 	equal(t, fmt.Sprint(string(contents), string(contents)), output.String())
 }
