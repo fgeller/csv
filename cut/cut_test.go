@@ -167,6 +167,27 @@ hansen
 petersen
 `,
 	},
+	{ // cutting fields separater by spaces
+		parameters: []string{"-d ", "-f2"},
+		input: "first second third\x0a" +
+			"a b c\x0a" +
+			"d e f\x0a",
+		expected: "second\x0ab\x0ae\x0a",
+	},
+	{ // cutting fields separater by quotes
+		parameters: []string{"-d'", "-f2"},
+		input: "first'second'third\x0a" +
+			"a'b'c\x0a" +
+			"d'e'f\x0a",
+		expected: "second\x0ab\x0ae\x0a",
+	},
+	{ // cutting fields separater by double quotes
+		parameters: []string{"-d\"", "-f2"},
+		input: "first\"second\"third\x0a" +
+			"a\"b\"c\x0a" +
+			"d\"e\"f\x0a",
+		expected: "second\x0ab\x0ae\x0a",
+	},
 	{ // cutting csv values with LF rather than CRLF line ending
 		parameters: []string{"-e2-", "--line-end=LF"},
 		input: "first a,last b,favorite pet\x0a" +

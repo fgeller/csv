@@ -81,7 +81,6 @@ func openInput(fileNames []string) ([]*os.File, error) {
 	return opened, nil
 }
 
-// TODO: -d" "
 func parseArguments(rawArguments []string) (*parameters, error) {
 	ranges := ""
 	mode := csvMode
