@@ -81,7 +81,7 @@ func openInput(fileNames []string) ([]*os.File, error) {
 	return opened, nil
 }
 
-func parseArguments(rawArguments []string) (*parameters, error) {
+func parseArguments(rawArguments []string) (*parameters, string) {
 	ranges := ""
 	mode := csvMode
 	inputDelimiter := ""
@@ -169,6 +169,12 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		case argument == "-n":
 			// ignore
 
+		case argument == "-":
+			fileNames = nil
+
+		case strings.HasPrefix(argument, "-"):
+			return nil, fmt.Sprintf("Invalid argument %s", argument)
+
 		case true:
 			fileNames = append(fileNames, argument)
 		}
@@ -194,7 +200,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 
 	input, err := openInput(fileNames)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Sprintf("%s", err)
 	}
 
 	return &parameters{
@@ -208,7 +214,7 @@ func parseArguments(rawArguments []string) (*parameters, error) {
 		headerNames:     headerNames,
 		lineEnd:         lineEnd,
 		cpuProfile:      cpuProfile,
-	}, nil
+	}, ""
 }
 
 func openFiles(fileNames []string) ([]*os.File, error) {
@@ -578,8 +584,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 func cut(arguments []string, output io.Writer) {
 	parameters, err := parseArguments(arguments)
-	if err != nil {
-		fmt.Println("Invalid arguments:", err)
+	if err != "" {
 		return
 	}
 

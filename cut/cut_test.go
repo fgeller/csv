@@ -17,6 +17,14 @@ func equal(t *testing.T, expected interface{}, actual interface{}) {
 	}
 }
 
+func TestArgumentParsingFailures(t *testing.T) {
+	_, msg := parseArguments([]string{"-z"})
+	equal(t, "Invalid argument -z", msg)
+
+	_, msg = parseArguments([]string{"idontexist"})
+	equal(t, "open idontexist: no such file or directory", msg)
+}
+
 func TestFieldsArgumentParsing(t *testing.T) {
 	arguments, _ := parseArguments([]string{fmt.Sprint("-f", "1,3,5")})
 	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
