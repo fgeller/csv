@@ -582,9 +582,17 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 }
 
+func printInvalidUsage(output io.Writer, message string) {
+	usage := fmt.Sprintf(`%v: %v
+Try '%s --help' for more information.
+`, os.Args[0], message, os.Args[0])
+	output.Write([]byte(usage))
+}
+
 func cut(arguments []string, output io.Writer) {
 	parameters, err := parseArguments(arguments)
 	if err != "" {
+		printInvalidUsage(os.Stderr, err)
 		return
 	}
 
