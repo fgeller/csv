@@ -437,7 +437,7 @@ func cutFields(input io.Reader, output io.Writer, parameters *parameters) {
 					fieldCount += 1
 				}
 
-			case char == lineEndByte: // TODO: test support for multi byte
+			case char == lineEndByte:
 				field = append(field, char)
 				if bytes.Equal(field[len(field)-len(lineEnd):], lineEnd) {
 					field = field[:len(field)-len(lineEnd)]
@@ -500,7 +500,7 @@ func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
 				bufferedOutput.WriteByte(char)
 			}
 
-			if char == LF { // TODO: different line endings?
+			if char == LF {
 				inHeader = false
 				firstWrittenByte = true
 				byteCount = 1
@@ -548,7 +548,7 @@ func cutCharacters(input io.Reader, output io.Writer, parameters *parameters) {
 				bufferedOutput.WriteRune(rune)
 			}
 
-			if rune == '\n' { // TODO: different line endings?
+			if rune == '\n' {
 				inHeader = false
 				firstWrittenRune = true
 				runeCount = 1
@@ -584,7 +584,7 @@ func cut(arguments []string, output io.Writer) {
 	}
 
 	if parameters.cpuProfile {
-		fmt.Printf("CPU profiling enabled.\n")
+		fmt.Printf("CPU profiling output will be written to cut.cprof\n")
 		f, err := os.Create("cut.cprof")
 		if err != nil {
 			log.Fatal(err)
