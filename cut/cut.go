@@ -304,21 +304,23 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 	haveSeenDelimiter := false
 	firstWordWritten := false
 	wordCount := 1
+	mode := parameters.mode
 
 	writeOut := func(eol bool) bool {
-
 		if inHeader {
 			selected = append(selected, isSelected(parameters, wordCount))
 		}
 
 		force := eol && !haveSeenDelimiter && !parameters.delimitedOnly
+
 		if force || selected[wordCount-1] && (haveSeenDelimiter || !parameters.delimitedOnly) {
 			if firstWordWritten {
 				bufferedOutput.Write(outputDelimiter)
 			}
+
 			bufferedOutput.Write(word)
-			word = word[:0]
 			firstWordWritten = true
+			word = word[:0]
 			return true
 		}
 
@@ -334,15 +336,15 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 
 			switch {
 
-			case !inEscaped && char == DQUOTE:
+			case mode == csvMode && !inEscaped && char == DQUOTE:
 				inEscaped = true
 				word = append(word, char)
 
-			case inEscaped && char == DQUOTE:
+			case mode == csvMode && inEscaped && char == DQUOTE:
 				inEscaped = false
 				word = append(word, char)
 
-			case !inEscaped && char == inputDelimiterEndByte:
+			case mode == csvMode && !inEscaped && char == inputDelimiterEndByte || mode == fieldMode && char == inputDelimiterEndByte:
 				word = append(word, char)
 				if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
 					word = word[:len(word)-len(inputDelimiter)]
@@ -360,6 +362,7 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 						bufferedOutput.Write(lineEnd)
 					}
 					inHeader = false
+					haveSeenDelimiter = false
 					firstWordWritten = false
 					wordCount = 1
 				}
@@ -374,97 +377,6 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 			if len(word) > 0 {
 				writeOut(true)
 				wordCount = 0
-				bufferedOutput.Write(lineEnd)
-			}
-			break
-		}
-	}
-}
-
-func cutFields(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReaderSize(input, 4096)
-	bufferedOutput := bufio.NewWriterSize(output, 4096)
-	defer bufferedOutput.Flush()
-
-	buffer := make([]byte, 4096*1000)
-	field := make([]byte, 0, 30)
-	selected := make([]bool, 0, 20)
-
-	inputDelimiter := []byte(parameters.inputDelimiter)
-	inputDelimiterEndByte := inputDelimiter[len(inputDelimiter)-1]
-
-	outputDelimiter := []byte(parameters.outputDelimiter)
-
-	lineEnd := []byte(parameters.lineEnd)
-	lineEndByte := lineEnd[len(lineEnd)-1]
-
-	firstWordWritten := false
-	haveSeenDelimiter := false
-	inHeader := true
-	fieldCount := 1
-
-	writeOut := func(eol bool) bool {
-		if inHeader {
-			selected = append(selected, isSelected(parameters, fieldCount))
-		}
-
-		force := eol && !haveSeenDelimiter && !parameters.delimitedOnly
-
-		if force || selected[fieldCount-1] && (haveSeenDelimiter || !parameters.delimitedOnly) {
-			if firstWordWritten {
-				bufferedOutput.Write(outputDelimiter)
-			}
-
-			bufferedOutput.Write(field)
-			firstWordWritten = true
-			field = field[:0]
-			return true
-		}
-
-		field = field[:0]
-		return false
-	}
-
-	for {
-		count, err := bufferedInput.Read(buffer)
-
-		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
-			char := buffer[bufferIndex]
-
-			switch {
-
-			case char == inputDelimiterEndByte:
-				field = append(field, char)
-				if bytes.Equal(field[len(field)-len(inputDelimiter):], inputDelimiter) {
-					field = field[:len(field)-len(inputDelimiter)]
-					haveSeenDelimiter = true
-					writeOut(false)
-					fieldCount += 1
-				}
-
-			case char == lineEndByte:
-				field = append(field, char)
-				if bytes.Equal(field[len(field)-len(lineEnd):], lineEnd) {
-					field = field[:len(field)-len(lineEnd)]
-					writeOut(true)
-					if firstWordWritten {
-						bufferedOutput.Write(lineEnd)
-					}
-					inHeader = false
-					fieldCount = 1
-					firstWordWritten = false
-					haveSeenDelimiter = false
-				}
-
-			case true:
-				field = append(field, char)
-			}
-
-		}
-
-		if err != nil {
-			if len(field) > 0 {
-				writeOut(true)
 				bufferedOutput.Write(lineEnd)
 			}
 			break
@@ -574,9 +486,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 		cutCharacters(input, output, parameters)
 	case parameters.mode == byteMode:
 		cutBytes(input, output, parameters)
-	case parameters.mode == fieldMode:
-		cutFields(input, output, parameters)
-	case parameters.mode == csvMode:
+	case parameters.mode == fieldMode || parameters.mode == csvMode:
 		cutCSV(input, output, parameters)
 	}
 }
