@@ -157,6 +157,16 @@ hans,hansen,moose
 peter,petersen,monarch
 `,
 	},
+	{ // cutting fields with multi-byte delimiter
+		parameters: []string{"-d€", "-f2"},
+		input: "first name€last name€favorite pet\x0a" +
+			"hans€hansen€moose\x0a" +
+			"peter€petersen€monarch\x0a",
+		expected: `last name
+hansen
+petersen
+`,
+	},
 	{ // cutting csv values with LF rather than CRLF line ending
 		parameters: []string{"-e2-", "--line-end=LF"},
 		input: "first a,last b,favorite pet\x0a" +
@@ -183,6 +193,33 @@ peter,petersen,monarch
 		expected: "last a,favorite pet\x0d\x0a" +
 			"hansen,moose\x0d\x0a" +
 			"petersen,monarch\x0d\x0a",
+	},
+	{ // cutting csv values with custom input delimiters
+		parameters: []string{"-e2-", "-d;"},
+		input: "first a;last a;favorite pet\x0d\x0a" +
+			"hans;hansen;moose\x0d\x0a" +
+			"peter;petersen;monarch\x0d\x0a",
+		expected: "last a;favorite pet\x0d\x0a" +
+			"hansen;moose\x0d\x0a" +
+			"petersen;monarch\x0d\x0a",
+	},
+	{ // cutting csv values with custom multi-byte input delimiters
+		parameters: []string{"-e2-", "-d€", "--output-delimiter=;"},
+		input: "first a€last a€favorite pet\x0d\x0a" +
+			"hans€hansen€moose\x0d\x0a" +
+			"peter€petersen€monarch\x0d\x0a",
+		expected: "last a;favorite pet\x0d\x0a" +
+			"hansen;moose\x0d\x0a" +
+			"petersen;monarch\x0d\x0a",
+	},
+	{ // cutting csv values with custom input and output delimiters
+		parameters: []string{"-e2-", "-d;", "--output-delimiter=|"},
+		input: "first a;last a;favorite pet\x0d\x0a" +
+			"hans;hansen;moose\x0d\x0a" +
+			"peter;petersen;monarch\x0d\x0a",
+		expected: "last a|favorite pet\x0d\x0a" +
+			"hansen|moose\x0d\x0a" +
+			"petersen|monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are escaped
 		parameters: []string{"-e2-3"},
