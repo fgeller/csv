@@ -308,8 +308,7 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 	writeOut := func(eol bool) bool {
 
 		if inHeader {
-			t := isSelected(parameters, wordCount)
-			selected = append(selected, t)
+			selected = append(selected, isSelected(parameters, wordCount))
 		}
 
 		force := eol && !haveSeenDelimiter && !parameters.delimitedOnly
