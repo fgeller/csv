@@ -17,6 +17,10 @@ func equal(t *testing.T, expected interface{}, actual interface{}) {
 	}
 }
 
+func assert(t *testing.T, assertion interface{}) {
+	equal(t, true, assertion)
+}
+
 func TestArgumentParsingFailures(t *testing.T) {
 	_, msg := parseArguments([]string{"-z"})
 	equal(t, "Invalid argument -z", msg)
@@ -25,8 +29,134 @@ func TestArgumentParsingFailures(t *testing.T) {
 	equal(t, "open idontexist: no such file or directory", msg)
 }
 
+func TestArgumentParsingByteMode(t *testing.T) {
+	variations := [][]string{
+		[]string{"-b1-2"},
+		[]string{"-b", "1-2"},
+		[]string{"--bytes", "1-2"},
+		[]string{"--bytes=1-2"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		assert(t, parameters.mode == byteMode)
+		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+	}
+}
+
+func TestArgumentParsingCharacterMode(t *testing.T) {
+	variations := [][]string{
+		[]string{"-c1-2"},
+		[]string{"-c", "1-2"},
+		[]string{"--characters", "1-2"},
+		[]string{"--characters=1-2"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		assert(t, parameters.mode == characterMode)
+		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+	}
+}
+
+func TestArgumentParsingDelimiter(t *testing.T) {
+	variations := [][]string{
+		[]string{"-d;"},
+		[]string{"-d", ";"},
+		[]string{"--delimiter", ";"},
+		[]string{"--delimiter=;"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		equal(t, ";", parameters.inputDelimiter)
+	}
+}
+
+func TestArgumentParsingCSVMode(t *testing.T) {
+	variations := [][]string{
+		[]string{"-e1-2"},
+		[]string{"-e", "1-2"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		assert(t, parameters.mode == csvMode)
+		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+	}
+}
+
+func TestArgumentParsingFieldMode(t *testing.T) {
+	variations := [][]string{
+		[]string{"-f1-2"},
+		[]string{"-f", "1-2"},
+		[]string{"--fields", "1-2"},
+		[]string{"--fields=1-2"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		assert(t, parameters.mode == fieldMode)
+		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+	}
+}
+
+func TestArgumentParsingIgnored(t *testing.T) {
+	_, messages := parseArguments([]string{"-n"})
+	equal(t, "", messages)
+}
+
+func TestArgumentParsingComplement(t *testing.T) {
+	parameters, messages := parseArguments([]string{"--complement"})
+	equal(t, "", messages)
+	assert(t, parameters.complement == true)
+}
+
+func TestArgumentParsingOnlyDelimited(t *testing.T) {
+	variations := [][]string{
+		[]string{"-s"},
+		[]string{"--only-delimited"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		assert(t, parameters.delimitedOnly)
+	}
+}
+
+func TestArgumentParsingOutputDelimiter(t *testing.T) {
+	variations := [][]string{
+		[]string{"--output-delimiter=|"},
+		[]string{"--output-delimiter", "|"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		equal(t, "|", parameters.outputDelimiter)
+	}
+}
+
+func TestArgumentParsingHelp(t *testing.T) {
+	parameters, messages := parseArguments([]string{"--help"})
+	equal(t, "", messages)
+	assert(t, parameters.printUsage)
+}
+
+func TestArgumentParsingVersion(t *testing.T) {
+	parameters, messages := parseArguments([]string{"--version"})
+	equal(t, "", messages)
+	assert(t, parameters.printVersion)
+}
+
 func TestFieldsArgumentParsing(t *testing.T) {
-	arguments, _ := parseArguments([]string{fmt.Sprint("-f", "1,3,5")})
+	arguments, _ := parseArguments([]string{"-f1,3,5"})
 	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
 
 	arguments, _ = parseArguments([]string{"-f", "1,3,5"})
@@ -390,4 +520,11 @@ peter,petersen,monarch
 	cut([]string{fileName, fileName, "--line-end=LF"}, output)
 
 	equal(t, fmt.Sprint(string(contents), string(contents)), output.String())
+}
+
+func TestPrintingUsageInformation(t *testing.T) {
+	output := bytes.NewBuffer(nil)
+	cut([]string{"--help"}, output)
+
+	equal(t, true, strings.HasPrefix(output.String(), "Usage: "))
 }

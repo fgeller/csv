@@ -66,6 +66,8 @@ type parameters struct {
 	headerNames     string
 	lineEnd         string
 	cpuProfile      bool
+	printUsage      bool
+	printVersion    bool
 }
 
 func openInput(fileNames []string) ([]*os.File, error) {
@@ -92,18 +94,42 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 	headerNames := ""
 	lineEnd := ""
 	cpuProfile := false
+	printUsage := false
+	printVersion := false
 
 	for index := 0; index < len(rawArguments); index += 1 {
 		argument := rawArguments[index]
 		switch {
 
-		case argument == "-f":
-			mode = fieldMode
+		case argument == "-b" || argument == "--bytes":
+			mode = byteMode
 			ranges = rawArguments[index+1]
 			index += 1
-		case strings.HasPrefix(argument, "-f"):
-			mode = fieldMode
-			ranges = argument[2:]
+		case strings.HasPrefix(argument, "-b"):
+			mode = byteMode
+			ranges = argument[len("-b"):]
+		case strings.HasPrefix(argument, "--bytes="):
+			mode = byteMode
+			ranges = argument[len("--bytes="):]
+
+		case argument == "-c" || argument == "--characters":
+			mode = characterMode
+			ranges = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-c"):
+			mode = characterMode
+			ranges = argument[len("-c"):]
+		case strings.HasPrefix(argument, "--characters="):
+			mode = characterMode
+			ranges = argument[len("--characters="):]
+
+		case argument == "-d" || argument == "--delimiter":
+			inputDelimiter = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-d"):
+			inputDelimiter = argument[len("-d"):]
+		case strings.HasPrefix(argument, "--delimiter="):
+			inputDelimiter = argument[len("--delimiter="):]
 
 		case argument == "-e":
 			mode = csvMode
@@ -113,41 +139,33 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 			mode = csvMode
 			ranges = argument[2:]
 
-		case argument == "-E":
-			mode = csvMode
-			headerNames = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-E"):
-			mode = csvMode
-			headerNames = argument[2:]
+			// case argument == "-E":
+			//	mode = csvMode
+			//	headerNames = rawArguments[index+1]
+			//	index += 1
+			// case strings.HasPrefix(argument, "-E"):
+			//	mode = csvMode
+			//	headerNames = argument[2:]
 
-		case argument == "-c":
-			mode = characterMode
+		case argument == "-f" || argument == "--fields":
+			mode = fieldMode
 			ranges = rawArguments[index+1]
 			index += 1
-		case strings.HasPrefix(argument, "-c"):
-			mode = characterMode
-			ranges = argument[2:]
+		case strings.HasPrefix(argument, "-f"):
+			mode = fieldMode
+			ranges = argument[len("-f"):]
+		case strings.HasPrefix(argument, "--fields="):
+			mode = fieldMode
+			ranges = argument[len("--fields="):]
 
-		case argument == "-b":
-			mode = byteMode
-			ranges = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-b"):
-			mode = byteMode
-			ranges = argument[2:]
-
-		case argument == "-d":
-			inputDelimiter = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-d"):
-			inputDelimiter = argument[2:]
-
-		case argument == "-s" || argument == "--only-delimited":
-			delimitedOnly = true
+		case argument == "-n":
+			// ignore
 
 		case argument == "--complement":
 			complement = true
+
+		case argument == "-s" || argument == "--only-delimited":
+			delimitedOnly = true
 
 		case argument == "--output-delimiter":
 			outputDelimiter = rawArguments[index+1]
@@ -166,8 +184,11 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		case argument == "--cpuprofile":
 			cpuProfile = true
 
-		case argument == "-n":
-			// ignore
+		case argument == "--help":
+			printUsage = true
+
+		case argument == "--version":
+			printVersion = true
 
 		case argument == "-":
 			fileNames = nil
@@ -214,6 +235,8 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		headerNames:     headerNames,
 		lineEnd:         lineEnd,
 		cpuProfile:      cpuProfile,
+		printUsage:      printUsage,
+		printVersion:    printVersion,
 	}, ""
 }
 
@@ -491,6 +514,56 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 }
 
+func printUsage(output io.Writer) {
+	usage := `Usage: cut OPTION... [FILE]...
+Print selected parts of lines from each file to standard output.
+
+Mandatory arguments to long options are mandatory for short options too.
+  -b, --bytes=LIST        select only these bytes
+  -c, --characters=LIST   select only these characters
+  -d, --delimiter=DELIM   use DELIM instead of TAB for field delimiter
+  -e LIST                 select only comma separated columns
+  -f, --fields=LIST       select only these fields;  also print any line
+                            that contains no delimiter character, unless
+                            the -s option is specified
+  -n                      (ignored)
+      --complement        complement the set of selected bytes, characters
+                            or fields
+  -s, --only-delimited    do not print lines not containing delimiters
+      --output-delimiter=STRING  use STRING as the output delimiter
+                            the default is to use the input delimiter
+      --help     display this help and exit
+      --version  output version information and exit
+
+Use one, and only one of -b, -c or -f.  Each LIST is made up of one
+range, or many ranges separated by commas.  Selected input is written
+in the same order that it is read, and is written exactly once.
+Each range is one of:
+
+  N     N'th byte, character or field, counted from 1
+  N-    from N'th byte, character or field, to end of line
+  N-M   from N'th to M'th (included) byte, character or field
+  -M    from first to M'th (included) byte, character or field
+
+With no FILE, or when FILE is -, read standard input.
+
+The project is available online at https://github.com/fgeller/csv-cut
+
+Credits:
+As the interface is based on cut from GNU coreutils, much of this usage
+information is taken from taken from GNU coreutils version.
+
+GNU coreutils is available at: <http://www.gnu.org/software/coreutils/>
+`
+	output.Write([]byte(usage))
+}
+
+func printVersion(output io.Writer) {
+	usage := `cut 0.314
+`
+	output.Write([]byte(usage))
+}
+
 func printInvalidUsage(output io.Writer, message string) {
 	usage := fmt.Sprintf(`%v: %v
 Try '%s --help' for more information.
@@ -502,6 +575,14 @@ func cut(arguments []string, output io.Writer) {
 	parameters, err := parseArguments(arguments)
 	if err != "" {
 		printInvalidUsage(os.Stderr, err)
+		return
+	}
+	if parameters.printUsage {
+		printUsage(output)
+		return
+	}
+	if parameters.printVersion {
+		printVersion(output)
 		return
 	}
 
