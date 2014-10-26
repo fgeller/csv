@@ -98,11 +98,34 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		case strings.HasPrefix(argument, "--delimiter="):
 			inputDelimiter = argument[len("--delimiter="):]
 
-		case argument == "-e":
+		case argument == "-c" || argument == "--columns":
 			ranges = rawArguments[index+1]
 			index += 1
-		case strings.HasPrefix(argument, "-e"):
+			lineEnd = string(LF)
+		case strings.HasPrefix(argument, "-c"):
+			ranges = argument[len("-c"):]
+			lineEnd = string(LF)
+		case strings.HasPrefix(argument, "--columns="):
+			ranges = argument[len("--columns="):]
+			lineEnd = string(LF)
+
+		case argument == "-C" || argument == "--Columns":
+			ranges = rawArguments[index+1]
+			index += 1
+			lineEnd = string([]byte{CR, LF})
+		case strings.HasPrefix(argument, "-C"):
+			ranges = argument[len("-C"):]
+			lineEnd = string([]byte{CR, LF})
+		case strings.HasPrefix(argument, "--Columns="):
+			ranges = argument[len("--Columns="):]
+			lineEnd = string([]byte{CR, LF})
+
+		case argument == "-C":
+			ranges = rawArguments[index+1]
+			index += 1
+		case strings.HasPrefix(argument, "-C"):
 			ranges = argument[2:]
+			lineEnd = string([]byte{CR, LF})
 
 		case argument == "--complement":
 			complement = true
@@ -336,17 +359,18 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 }
 
 func printUsage(output io.Writer) {
-	usage := `Usage: cut OPTION... [FILE]...
-Print selected parts of lines from each file to standard output.
+	usage := `Usage: csv OPTION... [FILE]...
+Print selected comma separater values of lines from each file to standard output.
 
 Mandatory arguments to long options are mandatory for short options too.
-  -d, --delimiter=DELIM   use DELIM instead of TAB for field delimiter
-  -e LIST                 select only comma separated columns
-      --complement        complement the set of columns
+  -c, --columns=LIST             select only comma separated columns, line ending LF
+  -C, --Columns=LIST             select only comma separated columns, line ending CRLF
+  -d, --delimiter=DELIM          use DELIM instead of TAB for field delimiter
+      --complement               complement the set of columns
       --output-delimiter=STRING  use STRING as the output delimiter
-                            the default is to use the input delimiter
-      --help     display this help and exit
-      --version  output version information and exit
+                                 the default is to use the input delimiter
+      --help                     display this help and exit
+      --version                  output version information and exit
 
 Each LIST is made up of one range, or many ranges separated by commas.  Selected
 input is written in the same order that it is read, and is written exactly once.

@@ -44,16 +44,33 @@ func TestArgumentParsingDelimiter(t *testing.T) {
 	}
 }
 
-func TestArgumentParsingCSVMode(t *testing.T) {
+func TestArgumentParsingColumns(t *testing.T) {
 	variations := [][]string{
-		[]string{"-e1-2"},
-		[]string{"-e", "1-2"},
+		[]string{"-c1-2"},
+		[]string{"-c", "1-2"},
+		[]string{"--columns", "1-2"},
+		[]string{"--columns=1-2"},
 	}
 
 	for _, variation := range variations {
 		parameters, messages := parseArguments(variation)
 		equal(t, "", messages)
 		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+		equal(t, "\x0a", parameters.lineEnd)
+	}
+
+	variations = [][]string{
+		[]string{"-C1-2"},
+		[]string{"-C", "1-2"},
+		[]string{"--Columns", "1-2"},
+		[]string{"--Columns=1-2"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
+		equal(t, "\x0d\x0a", parameters.lineEnd)
 	}
 }
 
@@ -90,22 +107,22 @@ func TestArgumentParsingVersion(t *testing.T) {
 
 func TestColumnsArgumentParsing(t *testing.T) {
 
-	arguments, _ := parseArguments([]string{"-e", "1-3"})
+	arguments, _ := parseArguments([]string{"-c", "1-3"})
 	equal(t, []Range{NewRange(1, 3)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-e", "1-"})
+	arguments, _ = parseArguments([]string{"-c", "1-"})
 	equal(t, []Range{NewRange(1, 0)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-e", "1"})
+	arguments, _ = parseArguments([]string{"-c", "1"})
 	equal(t, []Range{NewRange(1, 1)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-e", "-23"})
+	arguments, _ = parseArguments([]string{"-c", "-23"})
 	equal(t, []Range{NewRange(0, 23)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-e", "1-3,5"})
+	arguments, _ = parseArguments([]string{"-c", "1-3,5"})
 	equal(t, []Range{NewRange(1, 3), NewRange(5, 5)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-e", "1-3,-5,23,42-"})
+	arguments, _ = parseArguments([]string{"-c", "1-3,-5,23,42-"})
 	equal(t, []Range{NewRange(1, 3), NewRange(0, 5), NewRange(23, 23), NewRange(42, 0)}, arguments.ranges)
 }
 
@@ -141,7 +158,7 @@ var cutTests = []struct {
 	expected   string
 }{
 	{ // inversing range
-		parameters: []string{"-d,", "-e-2", "--complement", "--line-end=LF"},
+		parameters: []string{"-d,", "-c-2", "--complement"},
 		input:      fullFile,
 		expected: `favorite pet
 moose
@@ -149,7 +166,7 @@ monarch
 `,
 	},
 	{ // cutting first and second column via range
-		parameters: []string{"-d,", "-e1-2", "--line-end=LF"},
+		parameters: []string{"-d,", "-c1-2"},
 		input:      fullFile,
 		expected: `first name,last name
 hans,hansen
@@ -157,7 +174,7 @@ peter,petersen
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-e1-", "--line-end=LF"},
+		parameters: []string{"-d,", "-c1-"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -165,7 +182,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-e-3", "--line-end=LF"},
+		parameters: []string{"-d,", "-c-3"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -173,7 +190,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-e1-3,3", "--line-end=LF"},
+		parameters: []string{"-d,", "-c1-3,3"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -181,7 +198,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting fields with multi-byte delimiter
-		parameters: []string{"-d€", "-e2", "--line-end=LF"},
+		parameters: []string{"-d€", "-c2"},
 		input: "first name€last name€favorite pet\x0a" +
 			"hans€hansen€moose\x0a" +
 			"peter€petersen€monarch\x0a",
@@ -191,21 +208,21 @@ petersen
 `,
 	},
 	{ // cutting fields separated by spaces
-		parameters: []string{"-d ", "-e2", "--line-end=LF"},
+		parameters: []string{"-d ", "-c2"},
 		input: "first second third\x0a" +
 			"a b c\x0a" +
 			"d e f\x0a",
 		expected: "second\x0ab\x0ae\x0a",
 	},
 	{ // cutting fields separated by quotes
-		parameters: []string{"-d'", "-e2", "--line-end=LF"},
+		parameters: []string{"-d'", "-c2"},
 		input: "first'second'third\x0a" +
 			"a'b'c\x0a" +
 			"d'e'f\x0a",
 		expected: "second\x0ab\x0ae\x0a",
 	},
 	{ // cutting csv values with LF rather than CRLF line ending
-		parameters: []string{"-e2-", "--line-end=LF"},
+		parameters: []string{"-c2-"},
 		input: "first a,last b,favorite pet\x0a" +
 			"hans,hansen,moose\x0a" +
 			"peter,petersen,monarch\x0a",
@@ -214,7 +231,7 @@ petersen
 			"petersen,monarch\x0a",
 	},
 	{ // cutting csv values with CRLF explicitly
-		parameters: []string{"-e2-", "--line-end=CRLF"},
+		parameters: []string{"-c2-"},
 		input: "first a,last b,favorite pet\x0d\x0a" +
 			"hans,hansen,moose\x0d\x0a" +
 			"peter,petersen,monarch\x0d\x0a",
@@ -222,8 +239,8 @@ petersen
 			"hansen,moose\x0d\x0a" +
 			"petersen,monarch\x0d\x0a",
 	},
-	{ // cutting csv values
-		parameters: []string{"-e2-"},
+	{ // cutting csv values with CRLF line endings
+		parameters: []string{"-C2-"},
 		input: "first a,last a,favorite pet\x0d\x0a" +
 			"hans,hansen,moose\x0d\x0a" +
 			"peter,petersen,monarch\x0d\x0a",
@@ -232,7 +249,7 @@ petersen
 			"petersen,monarch\x0d\x0a",
 	},
 	{ // cutting csv values with custom input delimiters
-		parameters: []string{"-e2-", "-d;"},
+		parameters: []string{"-C2-", "-d;"},
 		input: "first a;last a;favorite pet\x0d\x0a" +
 			"hans;hansen;moose\x0d\x0a" +
 			"peter;petersen;monarch\x0d\x0a",
@@ -241,7 +258,7 @@ petersen
 			"petersen;monarch\x0d\x0a",
 	},
 	{ // cutting csv values with custom multi-byte input delimiters
-		parameters: []string{"-e2-", "-d€", "--output-delimiter=;"},
+		parameters: []string{"-C2-", "-d€", "--output-delimiter=;"},
 		input: "first a€last a€favorite pet\x0d\x0a" +
 			"hans€hansen€moose\x0d\x0a" +
 			"peter€petersen€monarch\x0d\x0a",
@@ -250,7 +267,7 @@ petersen
 			"petersen;monarch\x0d\x0a",
 	},
 	{ // cutting csv values with custom input and output delimiters
-		parameters: []string{"-e2-", "-d;", "--output-delimiter=|"},
+		parameters: []string{"-C2-", "-d;", "--output-delimiter=|"},
 		input: "first a;last a;favorite pet\x0d\x0a" +
 			"hans;hansen;moose\x0d\x0a" +
 			"peter;petersen;monarch\x0d\x0a",
@@ -259,7 +276,7 @@ petersen
 			"petersen|monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are escaped
-		parameters: []string{"-e2-3"},
+		parameters: []string{"-C2-3"},
 		input: "first name,last name,\"favorite pet\"\x0d\x0a" +
 			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
 			"peter,\"petersen,muellersen\",monarch\x0d\x0a",
@@ -268,7 +285,7 @@ petersen
 			"\"petersen,muellersen\",monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are escaped and contain new lines
-		parameters: []string{"-e2-3"},
+		parameters: []string{"-C2-3"},
 		input: "first name,last name,\"\x0d\x0afavorite pet\"\x0d\x0a" +
 			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
 			"peter,\"petersen,muellersen\x0d\x0a\",monarch\x0d\x0a",
@@ -277,7 +294,7 @@ petersen
 			"\"petersen,muellersen\x0d\x0a\",monarch\x0d\x0a",
 	},
 	{ // cutting csv values that are doubly escaped
-		parameters: []string{"-e2-3"},
+		parameters: []string{"-C2-3"},
 		input: "first name,last name,\"favorite\"\" pet\"\x0d\x0a" +
 			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
 			"peter,\"petersen,\"\"\"\"\"\"\"\"muellersen\",monarch\x0d\x0a",
