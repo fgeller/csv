@@ -29,38 +29,6 @@ func TestArgumentParsingFailures(t *testing.T) {
 	equal(t, "open idontexist: no such file or directory", msg)
 }
 
-func TestArgumentParsingByteMode(t *testing.T) {
-	variations := [][]string{
-		[]string{"-b1-2"},
-		[]string{"-b", "1-2"},
-		[]string{"--bytes", "1-2"},
-		[]string{"--bytes=1-2"},
-	}
-
-	for _, variation := range variations {
-		parameters, messages := parseArguments(variation)
-		equal(t, "", messages)
-		assert(t, parameters.mode == byteMode)
-		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
-	}
-}
-
-func TestArgumentParsingCharacterMode(t *testing.T) {
-	variations := [][]string{
-		[]string{"-c1-2"},
-		[]string{"-c", "1-2"},
-		[]string{"--characters", "1-2"},
-		[]string{"--characters=1-2"},
-	}
-
-	for _, variation := range variations {
-		parameters, messages := parseArguments(variation)
-		equal(t, "", messages)
-		assert(t, parameters.mode == characterMode)
-		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
-	}
-}
-
 func TestArgumentParsingDelimiter(t *testing.T) {
 	variations := [][]string{
 		[]string{"-d;"},
@@ -85,49 +53,14 @@ func TestArgumentParsingCSVMode(t *testing.T) {
 	for _, variation := range variations {
 		parameters, messages := parseArguments(variation)
 		equal(t, "", messages)
-		assert(t, parameters.mode == csvMode)
 		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
 	}
-}
-
-func TestArgumentParsingFieldMode(t *testing.T) {
-	variations := [][]string{
-		[]string{"-f1-2"},
-		[]string{"-f", "1-2"},
-		[]string{"--fields", "1-2"},
-		[]string{"--fields=1-2"},
-	}
-
-	for _, variation := range variations {
-		parameters, messages := parseArguments(variation)
-		equal(t, "", messages)
-		assert(t, parameters.mode == fieldMode)
-		equal(t, []Range{Range{start: 1, end: 2}}, parameters.ranges)
-	}
-}
-
-func TestArgumentParsingIgnored(t *testing.T) {
-	_, messages := parseArguments([]string{"-n"})
-	equal(t, "", messages)
 }
 
 func TestArgumentParsingComplement(t *testing.T) {
 	parameters, messages := parseArguments([]string{"--complement"})
 	equal(t, "", messages)
 	assert(t, parameters.complement == true)
-}
-
-func TestArgumentParsingOnlyDelimited(t *testing.T) {
-	variations := [][]string{
-		[]string{"-s"},
-		[]string{"--only-delimited"},
-	}
-
-	for _, variation := range variations {
-		parameters, messages := parseArguments(variation)
-		equal(t, "", messages)
-		assert(t, parameters.delimitedOnly)
-	}
 }
 
 func TestArgumentParsingOutputDelimiter(t *testing.T) {
@@ -155,32 +88,24 @@ func TestArgumentParsingVersion(t *testing.T) {
 	assert(t, parameters.printVersion)
 }
 
-func TestFieldsArgumentParsing(t *testing.T) {
-	arguments, _ := parseArguments([]string{"-f1,3,5"})
-	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
+func TestColumnsArgumentParsing(t *testing.T) {
 
-	arguments, _ = parseArguments([]string{"-f", "1,3,5"})
-	equal(t, []Range{NewRange(1, 1), NewRange(3, 3), NewRange(5, 5)}, arguments.ranges)
-
-	arguments, _ = parseArguments([]string{})
-	equal(t, []Range{}, arguments.ranges)
-
-	arguments, _ = parseArguments([]string{"-f", "1-3"})
+	arguments, _ := parseArguments([]string{"-e", "1-3"})
 	equal(t, []Range{NewRange(1, 3)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-f", "1-"})
+	arguments, _ = parseArguments([]string{"-e", "1-"})
 	equal(t, []Range{NewRange(1, 0)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-f", "1"})
+	arguments, _ = parseArguments([]string{"-e", "1"})
 	equal(t, []Range{NewRange(1, 1)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-f", "-23"})
+	arguments, _ = parseArguments([]string{"-e", "-23"})
 	equal(t, []Range{NewRange(0, 23)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-f", "1-3,5"})
+	arguments, _ = parseArguments([]string{"-e", "1-3,5"})
 	equal(t, []Range{NewRange(1, 3), NewRange(5, 5)}, arguments.ranges)
 
-	arguments, _ = parseArguments([]string{"-f", "1-3,-5,23,42-"})
+	arguments, _ = parseArguments([]string{"-e", "1-3,-5,23,42-"})
 	equal(t, []Range{NewRange(1, 3), NewRange(0, 5), NewRange(23, 23), NewRange(42, 0)}, arguments.ranges)
 }
 
@@ -215,56 +140,16 @@ var cutTests = []struct {
 	input      string
 	expected   string
 }{
-	{ // full file when no delimiter XXXX
-		parameters: []string{"-dx", "-f1"},
-		input:      fullFile,
-		expected: `first name,last name,favorite pet
-hans,hansen,moose
-peter,petersen,monarch
-`,
-	},
-	{ // cutting first column
-		parameters: []string{"-d,", "-f1"},
-		input:      fullFile,
-		expected: `first name
-hans
-peter
-`,
-	},
-	{ // cutting second column
-		parameters: []string{"-d,", "-f2"},
-		input:      fullFile,
-		expected: `last name
-hansen
-petersen
-`,
-	},
-	{ // cutting third column
-		parameters: []string{"-d,", "-f3"},
-		input:      fullFile,
-		expected: `favorite pet
-moose
-monarch
-`,
-	},
 	{ // inversing range
-		parameters: []string{"-d,", "-f-2", "--complement"},
+		parameters: []string{"-d,", "-e-2", "--complement", "--line-end=LF"},
 		input:      fullFile,
 		expected: `favorite pet
 moose
 monarch
-`,
-	},
-	{ // cutting first and third column
-		parameters: []string{"-d,", "-f1,3"},
-		input:      fullFile,
-		expected: `first name,favorite pet
-hans,moose
-peter,monarch
 `,
 	},
 	{ // cutting first and second column via range
-		parameters: []string{"-d,", "-f1-2"},
+		parameters: []string{"-d,", "-e1-2", "--line-end=LF"},
 		input:      fullFile,
 		expected: `first name,last name
 hans,hansen
@@ -272,7 +157,7 @@ peter,petersen
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-f1-"},
+		parameters: []string{"-d,", "-e1-", "--line-end=LF"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -280,7 +165,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-f-3"},
+		parameters: []string{"-d,", "-e-3", "--line-end=LF"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -288,7 +173,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting all via a range
-		parameters: []string{"-d,", "-f1-3,3"},
+		parameters: []string{"-d,", "-e1-3,3", "--line-end=LF"},
 		input:      fullFile,
 		expected: `first name,last name,favorite pet
 hans,hansen,moose
@@ -296,7 +181,7 @@ peter,petersen,monarch
 `,
 	},
 	{ // cutting fields with multi-byte delimiter
-		parameters: []string{"-d€", "-f2"},
+		parameters: []string{"-d€", "-e2", "--line-end=LF"},
 		input: "first name€last name€favorite pet\x0a" +
 			"hans€hansen€moose\x0a" +
 			"peter€petersen€monarch\x0a",
@@ -305,25 +190,18 @@ hansen
 petersen
 `,
 	},
-	{ // cutting fields separater by spaces
-		parameters: []string{"-d ", "-f2"},
+	{ // cutting fields separated by spaces
+		parameters: []string{"-d ", "-e2", "--line-end=LF"},
 		input: "first second third\x0a" +
 			"a b c\x0a" +
 			"d e f\x0a",
 		expected: "second\x0ab\x0ae\x0a",
 	},
-	{ // cutting fields separater by quotes
-		parameters: []string{"-d'", "-f2"},
+	{ // cutting fields separated by quotes
+		parameters: []string{"-d'", "-e2", "--line-end=LF"},
 		input: "first'second'third\x0a" +
 			"a'b'c\x0a" +
 			"d'e'f\x0a",
-		expected: "second\x0ab\x0ae\x0a",
-	},
-	{ // cutting fields separater by double quotes
-		parameters: []string{"-d\"", "-f2"},
-		input: "first\"second\"third\x0a" +
-			"a\"b\"c\x0a" +
-			"d\"e\"f\x0a",
 		expected: "second\x0ab\x0ae\x0a",
 	},
 	{ // cutting csv values with LF rather than CRLF line ending
@@ -404,77 +282,9 @@ petersen
 			"\"hans\",hansen,\"moose,goose\"\x0d\x0a" +
 			"peter,\"petersen,\"\"\"\"\"\"\"\"muellersen\",monarch\x0d\x0a",
 		expected: "last name,\"favorite\"\" pet\"\x0d\x0a" +
+
 			"hansen,\"moose,goose\"\x0d\x0a" +
 			"\"petersen,\"\"\"\"\"\"\"\"muellersen\",monarch\x0d\x0a",
-	},
-	{ // select bytes
-		parameters: []string{"-b-2"},
-		input:      `€foo`,
-		expected:   "\xe2\x82\x0a",
-	},
-	{ // select characters / runes
-		parameters: []string{"-c-2"},
-		input:      `€foo`,
-		expected: `€f
-`,
-	},
-	{ // select characters / runes with custom separator
-		parameters: []string{"-c-2", "--output-delimiter", "x"},
-		input:      `€foo`,
-		expected: `€xf
-`,
-	},
-	{ // select characters / runes with custom separator with different argument formatting
-		parameters: []string{"-c-2", "--output-delimiter=x"},
-		input:      `€foo`,
-		expected: `€xf
-`,
-	},
-	{ // include lines that don't contain delimiter by default
-		parameters: []string{"-d,", "-f2"},
-		input: `first name,last name
-no delimiter here
-same name,and another`,
-		expected: `last name
-no delimiter here
-and another
-`,
-	},
-	{ // include exclude lines without delimiter
-		parameters: []string{"-d,", "-f2", "-s"},
-		input: `first name,last name
-no delimiter here
-same name,and another`,
-		expected: `last name
-and another
-`,
-	},
-	{ // include exclude lines without delimiter
-		parameters: []string{"-d,", "--only-delimited", "-f2"},
-		input: `first name,last name
-no delimiter here
-same name,and another`,
-		expected: `last name
-and another
-`,
-	},
-	{ // include exclude lines without delimiter
-		parameters: []string{"--output-delimiter", "x", "-d,", "--only-delimited", "-f1,2"},
-		input: `first name,last name
-no delimiter here
-same name,and another`,
-		expected: `first namexlast name
-same namexand another
-`,
-	},
-	{ // ignore -n
-		parameters: []string{"--output-delimiter", "x", "-n", "-d,", "--only-delimited", "-f1,2"},
-		input: `first name,last name
-no delimiter here
-same name,and another`,
-		expected: `first namexlast name
-same namexand another
-`,
 	},
 }
 
