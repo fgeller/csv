@@ -211,6 +211,18 @@ e
 `,
 	},
 	{
+		test:       "selecting by name should match wrapped fields",
+		parameters: []string{"-nsecond"},
+		input: `first,"second",third
+a,b,c
+d,e,f
+`,
+		expected: `"second"
+b
+e
+`,
+	},
+	{
 		test:       "selection by name",
 		parameters: []string{"-nfavorite pet"},
 		input:      fullFile,

@@ -280,10 +280,12 @@ func isSelected(parameters *parameters, field int, word string) bool {
 	}
 
 	for _, name := range parameters.names {
+		wrappedName := fmt.Sprintf("%v%v%v", string(DQUOTE), name, string(DQUOTE))
+
 		switch {
-		case !parameters.complement && name == word:
+		case !parameters.complement && (name == word || wrappedName == word):
 			return true
-		case parameters.complement && name != word:
+		case parameters.complement && (name != word && wrappedName != word):
 			return true
 		}
 	}
