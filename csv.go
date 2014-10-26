@@ -187,9 +187,8 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		outputDelimiter = inputDelimiter
 	}
 
-	switch {
-	case len(lineEnd) == 0:
-		lineEnd = string([]byte{CR, LF})
+	if len(lineEnd) == 0 {
+		lineEnd = string(LF)
 	}
 
 	input, err := openInput(fileNames)
@@ -246,6 +245,9 @@ func parseRange(raw string) Range {
 }
 
 func parseNames(rawNames string) []string {
+	if len(rawNames) == 0 {
+		return []string{}
+	}
 	return strings.Split(rawNames, ",")
 }
 
@@ -262,8 +264,8 @@ func parseRanges(rawRanges string) []Range {
 	return ranges
 }
 
-func isSelected(parameters *parameters, field int) bool {
-	if len(parameters.ranges) == 0 {
+func isSelected(parameters *parameters, field int, word string) bool {
+	if len(parameters.ranges) == 0 && len(parameters.names) == 0 {
 		return true
 	}
 
@@ -273,6 +275,15 @@ func isSelected(parameters *parameters, field int) bool {
 		case !parameters.complement && contained:
 			return true
 		case parameters.complement && !contained:
+			return true
+		}
+	}
+
+	for _, name := range parameters.names {
+		switch {
+		case !parameters.complement && name == word:
+			return true
+		case parameters.complement && name != word:
 			return true
 		}
 	}
@@ -304,7 +315,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 	writeOut := func(eol bool) bool {
 		if inHeader {
-			selected = append(selected, isSelected(parameters, wordCount))
+			selected = append(selected, isSelected(parameters, wordCount, string(word)))
 		}
 
 		if selected[wordCount-1] {
