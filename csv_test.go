@@ -74,6 +74,36 @@ func TestArgumentParsingColumns(t *testing.T) {
 	}
 }
 
+func TestArgumentParsingHeaders(t *testing.T) {
+	variations := [][]string{
+		[]string{"-ha,b"},
+		[]string{"-h", "a,b"},
+		[]string{"--headers", "a,b"},
+		[]string{"--headers=a,b"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		equal(t, []string{"a", "b"}, parameters.headers)
+		equal(t, "\x0a", parameters.lineEnd)
+	}
+
+	variations = [][]string{
+		[]string{"-Ha,b"},
+		[]string{"-H", "a,b"},
+		[]string{"--Headers", "a,b"},
+		[]string{"--Headers=a,b"},
+	}
+
+	for _, variation := range variations {
+		parameters, messages := parseArguments(variation)
+		equal(t, "", messages)
+		equal(t, []string{"a", "b"}, parameters.headers)
+		equal(t, "\x0d\x0a", parameters.lineEnd)
+	}
+}
+
 func TestArgumentParsingComplement(t *testing.T) {
 	parameters, messages := parseArguments([]string{"--complement"})
 	equal(t, "", messages)

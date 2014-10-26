@@ -54,7 +54,7 @@ type parameters struct {
 	outputDelimiter string
 	complement      bool
 	input           []*os.File
-	headerNames     string
+	headers         []string
 	lineEnd         string
 	cpuProfile      bool
 	printUsage      bool
@@ -80,7 +80,7 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 	outputDelimiter := ""
 	fileNames := []string{}
 	complement := false
-	headerNames := ""
+	headers := ""
 	lineEnd := ""
 	cpuProfile := false
 	printUsage := false
@@ -120,11 +120,26 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 			ranges = argument[len("--Columns="):]
 			lineEnd = string([]byte{CR, LF})
 
-		case argument == "-C":
-			ranges = rawArguments[index+1]
+		case argument == "-h" || argument == "--headers":
+			headers = rawArguments[index+1]
 			index += 1
-		case strings.HasPrefix(argument, "-C"):
-			ranges = argument[2:]
+			lineEnd = string(LF)
+		case strings.HasPrefix(argument, "-h"):
+			headers = argument[len("-h"):]
+			lineEnd = string(LF)
+		case strings.HasPrefix(argument, "--headers="):
+			headers = argument[len("--headers="):]
+			lineEnd = string(LF)
+
+		case argument == "-H" || argument == "--Headers":
+			headers = rawArguments[index+1]
+			index += 1
+			lineEnd = string([]byte{CR, LF})
+		case strings.HasPrefix(argument, "-H"):
+			headers = argument[len("-H"):]
+			lineEnd = string([]byte{CR, LF})
+		case strings.HasPrefix(argument, "--Headers="):
+			headers = argument[len("--Headers="):]
 			lineEnd = string([]byte{CR, LF})
 
 		case argument == "--complement":
@@ -184,11 +199,11 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 
 	return &parameters{
 		ranges:          parseRanges(ranges),
+		headers:         parseHeaders(headers),
 		inputDelimiter:  inputDelimiter,
 		outputDelimiter: outputDelimiter,
 		input:           input,
 		complement:      complement,
-		headerNames:     headerNames,
 		lineEnd:         lineEnd,
 		cpuProfile:      cpuProfile,
 		printUsage:      printUsage,
@@ -228,6 +243,10 @@ func parseRange(raw string) Range {
 	upper := raw[splitPosition+1:]
 
 	return NewRange(parseInt(lower), parseInt(upper))
+}
+
+func parseHeaders(rawHeaders string) []string {
+	return strings.Split(rawHeaders, ",")
 }
 
 func parseRanges(rawRanges string) []Range {
