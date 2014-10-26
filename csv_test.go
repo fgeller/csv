@@ -76,30 +76,30 @@ func TestArgumentParsingColumns(t *testing.T) {
 
 func TestArgumentParsingHeaders(t *testing.T) {
 	variations := [][]string{
-		[]string{"-ha,b"},
-		[]string{"-h", "a,b"},
-		[]string{"--headers", "a,b"},
-		[]string{"--headers=a,b"},
+		[]string{"-na,b"},
+		[]string{"-n", "a,b"},
+		[]string{"--names", "a,b"},
+		[]string{"--names=a,b"},
 	}
 
 	for _, variation := range variations {
 		parameters, messages := parseArguments(variation)
 		equal(t, "", messages)
-		equal(t, []string{"a", "b"}, parameters.headers)
+		equal(t, []string{"a", "b"}, parameters.names)
 		equal(t, "\x0a", parameters.lineEnd)
 	}
 
 	variations = [][]string{
-		[]string{"-Ha,b"},
-		[]string{"-H", "a,b"},
-		[]string{"--Headers", "a,b"},
-		[]string{"--Headers=a,b"},
+		[]string{"-Na,b"},
+		[]string{"-N", "a,b"},
+		[]string{"--Names", "a,b"},
+		[]string{"--Names=a,b"},
 	}
 
 	for _, variation := range variations {
 		parameters, messages := parseArguments(variation)
 		equal(t, "", messages)
-		equal(t, []string{"a", "b"}, parameters.headers)
+		equal(t, []string{"a", "b"}, parameters.names)
 		equal(t, "\x0d\x0a", parameters.lineEnd)
 	}
 }

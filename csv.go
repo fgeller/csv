@@ -54,7 +54,7 @@ type parameters struct {
 	outputDelimiter string
 	complement      bool
 	input           []*os.File
-	headers         []string
+	names           []string
 	lineEnd         string
 	cpuProfile      bool
 	printUsage      bool
@@ -80,7 +80,7 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 	outputDelimiter := ""
 	fileNames := []string{}
 	complement := false
-	headers := ""
+	names := ""
 	lineEnd := ""
 	cpuProfile := false
 	printUsage := false
@@ -120,26 +120,26 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 			ranges = argument[len("--Columns="):]
 			lineEnd = string([]byte{CR, LF})
 
-		case argument == "-h" || argument == "--headers":
-			headers = rawArguments[index+1]
+		case argument == "-n" || argument == "--names":
+			names = rawArguments[index+1]
 			index += 1
 			lineEnd = string(LF)
-		case strings.HasPrefix(argument, "-h"):
-			headers = argument[len("-h"):]
+		case strings.HasPrefix(argument, "-n"):
+			names = argument[len("-n"):]
 			lineEnd = string(LF)
-		case strings.HasPrefix(argument, "--headers="):
-			headers = argument[len("--headers="):]
+		case strings.HasPrefix(argument, "--names="):
+			names = argument[len("--names="):]
 			lineEnd = string(LF)
 
-		case argument == "-H" || argument == "--Headers":
-			headers = rawArguments[index+1]
+		case argument == "-N" || argument == "--Names":
+			names = rawArguments[index+1]
 			index += 1
 			lineEnd = string([]byte{CR, LF})
-		case strings.HasPrefix(argument, "-H"):
-			headers = argument[len("-H"):]
+		case strings.HasPrefix(argument, "-N"):
+			names = argument[len("-N"):]
 			lineEnd = string([]byte{CR, LF})
-		case strings.HasPrefix(argument, "--Headers="):
-			headers = argument[len("--Headers="):]
+		case strings.HasPrefix(argument, "--Names="):
+			names = argument[len("--Names="):]
 			lineEnd = string([]byte{CR, LF})
 
 		case argument == "--complement":
@@ -199,7 +199,7 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 
 	return &parameters{
 		ranges:          parseRanges(ranges),
-		headers:         parseHeaders(headers),
+		names:           parseNames(names),
 		inputDelimiter:  inputDelimiter,
 		outputDelimiter: outputDelimiter,
 		input:           input,
@@ -245,8 +245,8 @@ func parseRange(raw string) Range {
 	return NewRange(parseInt(lower), parseInt(upper))
 }
 
-func parseHeaders(rawHeaders string) []string {
-	return strings.Split(rawHeaders, ",")
+func parseNames(rawNames string) []string {
+	return strings.Split(rawNames, ",")
 }
 
 func parseRanges(rawRanges string) []Range {
@@ -382,14 +382,19 @@ func printUsage(output io.Writer) {
 Print selected comma separater values of lines from each file to standard output.
 
 Mandatory arguments to long options are mandatory for short options too.
-  -c, --columns=LIST             select only comma separated columns, line ending LF
-  -C, --Columns=LIST             select only comma separated columns, line ending CRLF
+  -c, --columns=LIST             select columns by position, line ending LF
+  -C, --Columns=LIST             select columns by position, line ending CRLF
+  -n, --names=NAMES              select columns by name, line ending LF
+  -N, --Names=NAMES              select columns by name, line ending CRLF
   -d, --delimiter=DELIM          use DELIM instead of TAB for field delimiter
       --complement               complement the set of columns
       --output-delimiter=STRING  use STRING as the output delimiter
                                  the default is to use the input delimiter
       --help                     display this help and exit
       --version                  output version information and exit
+
+Each NAMES is made up of a list of names separated by commas. The first line of
+each file is interpreted as the header line in which names are defined.
 
 Each LIST is made up of one range, or many ranges separated by commas.  Selected
 input is written in the same order that it is read, and is written exactly once.
