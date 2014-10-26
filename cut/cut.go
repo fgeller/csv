@@ -22,13 +22,6 @@ const (
 	LF     byte = 0x0a
 )
 
-const (
-	fieldMode = iota
-	byteMode
-	characterMode
-	csvMode
-)
-
 // mhh... how to resolve naming conflict?
 type Range struct {
 	start int
@@ -56,11 +49,9 @@ func NewRange(start int, end int) Range {
 }
 
 type parameters struct {
-	mode            int
 	ranges          []Range
 	inputDelimiter  string
 	outputDelimiter string
-	delimitedOnly   bool
 	complement      bool
 	input           []*os.File
 	headerNames     string
@@ -85,11 +76,9 @@ func openInput(fileNames []string) ([]*os.File, error) {
 
 func parseArguments(rawArguments []string) (*parameters, string) {
 	ranges := ""
-	mode := csvMode
 	inputDelimiter := ""
 	outputDelimiter := ""
 	fileNames := []string{}
-	delimitedOnly := false
 	complement := false
 	headerNames := ""
 	lineEnd := ""
@@ -101,28 +90,6 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		argument := rawArguments[index]
 		switch {
 
-		case argument == "-b" || argument == "--bytes":
-			mode = byteMode
-			ranges = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-b"):
-			mode = byteMode
-			ranges = argument[len("-b"):]
-		case strings.HasPrefix(argument, "--bytes="):
-			mode = byteMode
-			ranges = argument[len("--bytes="):]
-
-		case argument == "-c" || argument == "--characters":
-			mode = characterMode
-			ranges = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-c"):
-			mode = characterMode
-			ranges = argument[len("-c"):]
-		case strings.HasPrefix(argument, "--characters="):
-			mode = characterMode
-			ranges = argument[len("--characters="):]
-
 		case argument == "-d" || argument == "--delimiter":
 			inputDelimiter = rawArguments[index+1]
 			index += 1
@@ -132,40 +99,13 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 			inputDelimiter = argument[len("--delimiter="):]
 
 		case argument == "-e":
-			mode = csvMode
 			ranges = rawArguments[index+1]
 			index += 1
 		case strings.HasPrefix(argument, "-e"):
-			mode = csvMode
 			ranges = argument[2:]
-
-			// case argument == "-E":
-			//	mode = csvMode
-			//	headerNames = rawArguments[index+1]
-			//	index += 1
-			// case strings.HasPrefix(argument, "-E"):
-			//	mode = csvMode
-			//	headerNames = argument[2:]
-
-		case argument == "-f" || argument == "--fields":
-			mode = fieldMode
-			ranges = rawArguments[index+1]
-			index += 1
-		case strings.HasPrefix(argument, "-f"):
-			mode = fieldMode
-			ranges = argument[len("-f"):]
-		case strings.HasPrefix(argument, "--fields="):
-			mode = fieldMode
-			ranges = argument[len("--fields="):]
-
-		case argument == "-n":
-			// ignore
 
 		case argument == "--complement":
 			complement = true
-
-		case argument == "-s" || argument == "--only-delimited":
-			delimitedOnly = true
 
 		case argument == "--output-delimiter":
 			outputDelimiter = rawArguments[index+1]
@@ -201,22 +141,17 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 		}
 	}
 
-	switch {
-	case inputDelimiter == "" && mode == csvMode:
+	if inputDelimiter == "" {
 		inputDelimiter = ","
-	case inputDelimiter == "":
-		inputDelimiter = "\t"
 	}
 
-	if len(outputDelimiter) == 0 && (mode == fieldMode || mode == csvMode) {
+	if len(outputDelimiter) == 0 {
 		outputDelimiter = inputDelimiter
 	}
 
 	switch {
-	case len(lineEnd) == 0 && mode == csvMode:
-		lineEnd = string([]byte{CR, LF})
 	case len(lineEnd) == 0:
-		lineEnd = "\n"
+		lineEnd = string([]byte{CR, LF})
 	}
 
 	input, err := openInput(fileNames)
@@ -225,12 +160,10 @@ func parseArguments(rawArguments []string) (*parameters, string) {
 	}
 
 	return &parameters{
-		mode:            mode,
 		ranges:          parseRanges(ranges),
 		inputDelimiter:  inputDelimiter,
 		outputDelimiter: outputDelimiter,
 		input:           input,
-		delimitedOnly:   delimitedOnly,
 		complement:      complement,
 		headerNames:     headerNames,
 		lineEnd:         lineEnd,
@@ -305,7 +238,7 @@ func isSelected(parameters *parameters, field int) bool {
 	return false
 }
 
-func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
+func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedInput := bufio.NewReaderSize(input, 4096)
 	bufferedOutput := bufio.NewWriterSize(output, 4096)
 	defer bufferedOutput.Flush()
@@ -324,19 +257,15 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 
 	inEscaped := false
 	inHeader := true
-	haveSeenDelimiter := false
 	firstWordWritten := false
 	wordCount := 1
-	mode := parameters.mode
 
 	writeOut := func(eol bool) bool {
 		if inHeader {
 			selected = append(selected, isSelected(parameters, wordCount))
 		}
 
-		force := eol && !haveSeenDelimiter && !parameters.delimitedOnly
-
-		if force || selected[wordCount-1] && (haveSeenDelimiter || !parameters.delimitedOnly) {
+		if selected[wordCount-1] {
 			if firstWordWritten {
 				bufferedOutput.Write(outputDelimiter)
 			}
@@ -359,25 +288,25 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 
 			switch {
 
-			case mode == csvMode && !inEscaped && char == DQUOTE:
+			case !inEscaped && char == DQUOTE:
 				inEscaped = true
 				word = append(word, char)
 
-			case mode == csvMode && inEscaped && char == DQUOTE:
+			case inEscaped && char == DQUOTE:
 				inEscaped = false
 				word = append(word, char)
 
-			case mode == csvMode && !inEscaped && char == inputDelimiterEndByte || mode == fieldMode && char == inputDelimiterEndByte:
+			case !inEscaped && char == inputDelimiterEndByte:
 				word = append(word, char)
 				if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
 					word = word[:len(word)-len(inputDelimiter)]
-					haveSeenDelimiter = true
 					writeOut(false)
 					wordCount += 1
 				}
 
 			case !inEscaped && char == lineEndByte:
 				word = append(word, char)
+
 				if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
 					word = word[:len(word)-len(lineEnd)]
 					writeOut(true)
@@ -385,7 +314,6 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 						bufferedOutput.Write(lineEnd)
 					}
 					inHeader = false
-					haveSeenDelimiter = false
 					firstWordWritten = false
 					wordCount = 1
 				}
@@ -407,137 +335,21 @@ func cutCSV(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 }
 
-func cutBytes(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReaderSize(input, 4096)
-	bufferedOutput := bufio.NewWriterSize(output, 4096)
-	defer bufferedOutput.Flush()
-
-	buffer := make([]byte, 4096*1000)
-
-	firstWrittenByte := true
-	shouldInsertSeparator := len(parameters.outputDelimiter) > 0
-	separator := []byte(parameters.outputDelimiter)
-
-	inHeader := true
-	selected := make([]bool, 0, 20)
-	byteCount := 1
-
-	for {
-		count, err := bufferedInput.Read(buffer)
-
-		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
-			char := buffer[bufferIndex]
-
-			if inHeader {
-				selected = append(selected, isSelected(parameters, byteCount))
-			}
-
-			if selected[byteCount-1] {
-				if shouldInsertSeparator && !firstWrittenByte {
-					bufferedOutput.Write(separator)
-				}
-				firstWrittenByte = false
-				bufferedOutput.WriteByte(char)
-			}
-
-			if char == LF {
-				inHeader = false
-				firstWrittenByte = true
-				byteCount = 1
-			} else {
-				if shouldInsertSeparator && selected[byteCount-1] {
-					bufferedOutput.Write(separator)
-				}
-				byteCount += 1
-			}
-		}
-
-		if err != nil {
-			bufferedOutput.WriteByte(LF)
-			break
-		}
-	}
-}
-
-func cutCharacters(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReaderSize(input, 4096)
-	bufferedOutput := bufio.NewWriterSize(output, 4096)
-	defer bufferedOutput.Flush()
-
-	firstWrittenRune := true
-	shouldInsertSeparator := len(parameters.outputDelimiter) > 0
-	separator := []byte(parameters.outputDelimiter)
-
-	inHeader := true
-	selected := make([]bool, 0, 20)
-	runeCount := 1
-
-	for {
-		rune, size, err := bufferedInput.ReadRune()
-
-		if size > 0 && err == nil {
-			if inHeader {
-				selected = append(selected, isSelected(parameters, runeCount))
-			}
-
-			if selected[runeCount-1] {
-				if shouldInsertSeparator && !firstWrittenRune {
-					bufferedOutput.Write(separator)
-				}
-				firstWrittenRune = false
-				bufferedOutput.WriteRune(rune)
-			}
-
-			if rune == '\n' {
-				inHeader = false
-				firstWrittenRune = true
-				runeCount = 1
-			} else {
-				runeCount += 1
-			}
-
-		} else {
-			bufferedOutput.WriteByte(LF)
-			break
-		}
-	}
-}
-
-func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
-	switch {
-	case parameters.mode == characterMode:
-		cutCharacters(input, output, parameters)
-	case parameters.mode == byteMode:
-		cutBytes(input, output, parameters)
-	case parameters.mode == fieldMode || parameters.mode == csvMode:
-		cutCSV(input, output, parameters)
-	}
-}
-
 func printUsage(output io.Writer) {
 	usage := `Usage: cut OPTION... [FILE]...
 Print selected parts of lines from each file to standard output.
 
 Mandatory arguments to long options are mandatory for short options too.
-  -b, --bytes=LIST        select only these bytes
-  -c, --characters=LIST   select only these characters
   -d, --delimiter=DELIM   use DELIM instead of TAB for field delimiter
   -e LIST                 select only comma separated columns
-  -f, --fields=LIST       select only these fields;  also print any line
-                            that contains no delimiter character, unless
-                            the -s option is specified
-  -n                      (ignored)
-      --complement        complement the set of selected bytes, characters
-                            or fields
-  -s, --only-delimited    do not print lines not containing delimiters
+      --complement        complement the set of columns
       --output-delimiter=STRING  use STRING as the output delimiter
                             the default is to use the input delimiter
       --help     display this help and exit
       --version  output version information and exit
 
-Use one, and only one of -b, -c or -f.  Each LIST is made up of one
-range, or many ranges separated by commas.  Selected input is written
-in the same order that it is read, and is written exactly once.
+Each LIST is made up of one range, or many ranges separated by commas.  Selected
+input is written in the same order that it is read, and is written exactly once.
 Each range is one of:
 
   N     N'th byte, character or field, counted from 1
@@ -547,7 +359,7 @@ Each range is one of:
 
 With no FILE, or when FILE is -, read standard input.
 
-The project is available online at https://github.com/fgeller/csv-cut
+The project is available online at https://github.com/fgeller/csv
 
 Credits:
 As the interface is based on cut from GNU coreutils, much of this usage
