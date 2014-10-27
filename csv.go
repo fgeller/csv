@@ -392,7 +392,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 func printUsage(output io.Writer) {
 	usage := `Usage: csv OPTION... [FILE]...
-Print selected comma separater values of lines from each file to standard output.
+Print selected comma separated values of lines from each file to standard output.
 
 Mandatory arguments to long options are mandatory for short options too.
   -c, --columns=LIST             select columns by position, line ending LF
