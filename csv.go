@@ -11,11 +11,6 @@ import "runtime/pprof"
 import "log"
 
 const (
-	fields_message    string = "select only these fields"
-	delimiter_message string = "custom delimiter"
-)
-
-const (
 	DQUOTE byte = 0x22
 	COMMA  byte = 0x2c
 	CR     byte = 0x0d
