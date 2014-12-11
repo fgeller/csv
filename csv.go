@@ -455,8 +455,8 @@ func cut(arguments []string, output io.Writer) {
 	}
 
 	if parameters.cpuProfile {
-		fmt.Printf("CPU profiling output will be written to cut.cprof\n")
-		f, err := os.Create("cut.cprof")
+		fmt.Printf("CPU profiling output will be written to csv.cprof\n")
+		f, err := os.Create("csv.cprof")
 		if err != nil {
 			log.Fatal(err)
 		}
