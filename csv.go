@@ -293,88 +293,63 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedOutput := bufio.NewWriterSize(output, 4096)
 	defer bufferedOutput.Flush()
 
-	word := make([]byte, 0, 30)
-	selected := make([]bool, 0, 20)
-
 	inputDelimiter := []byte(parameters.inputDelimiter)
-	inputDelimiterEndByte := inputDelimiter[len(inputDelimiter)-1]
-
 	outputDelimiter := []byte(parameters.outputDelimiter)
 
 	lineEnd := []byte(parameters.lineEnd)
-	lineEndByte := lineEnd[len(lineEnd)-1]
 
 	inEscaped := false
-	inHeader := true
-	firstWordWritten := false
-	wordCount := 1
 
-	writeOut := func() bool {
-		if inHeader {
-			selected = append(selected, isSelected(parameters, wordCount, string(word)))
-		}
+	inputDelimiterIndex := 0
+	inInputDelimiter := false
+	lineEndIndex := 0
+	inLineEnd := true
 
-		if selected[wordCount-1] {
-			if firstWordWritten {
-				bufferedOutput.Write(outputDelimiter)
-			}
-
-			bufferedOutput.Write(word)
-			firstWordWritten = true
-			word = word[:0]
-			return true
-		}
-
-		word = word[:0]
-		return false
-	}
-
+charLoop:
 	for {
 		char, err := bufferedInput.ReadByte()
 		if err != nil {
-			if len(word) > 0 {
-				writeOut()
-				wordCount = 0
-				bufferedOutput.Write(lineEnd)
-			}
 			break
 		}
 
-		switch {
+		// TODO: save first line to set selected for selection by header
+		// TODO: what happens if inputDelimiter == lineEnd
 
+		if inInputDelimiter && inputDelimiterIndex == len(inputDelimiter) {
+			bufferedOutput.Write(outputDelimiter)
+			inInputDelimiter = false
+			inputDelimiterIndex = 0
+		}
+		if inLineEnd && lineEndIndex == len(lineEnd) {
+			bufferedOutput.Write(lineEnd)
+			inLineEnd = false
+			lineEndIndex = 0
+		}
+
+		switch {
 		case !inEscaped && char == DQUOTE:
 			inEscaped = true
-			word = append(word, char)
 
 		case inEscaped && char == DQUOTE:
 			inEscaped = false
-			word = append(word, char)
-
-		case !inEscaped && char == inputDelimiterEndByte:
-			word = append(word, char)
-			if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
-				word = word[:len(word)-len(inputDelimiter)]
-				writeOut()
-				wordCount += 1
-			}
-
-		case !inEscaped && char == lineEndByte:
-			word = append(word, char)
-
-			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-				word = word[:len(word)-len(lineEnd)]
-				writeOut()
-				if firstWordWritten {
-					bufferedOutput.Write(lineEnd)
-				}
-				inHeader = false
-				firstWordWritten = false
-				wordCount = 1
-			}
-
-		case true:
-			word = append(word, char)
 		}
+
+		if !inEscaped && char == inputDelimiter[inputDelimiterIndex] {
+			inInputDelimiter = true
+			inputDelimiterIndex += 1
+			continue charLoop
+		}
+
+		if !inEscaped && char == lineEnd[lineEndIndex] {
+			inLineEnd = true
+			lineEndIndex += 1
+			continue charLoop
+		}
+
+		inputDelimiterIndex = 0
+		lineEndIndex = 0
+		bufferedOutput.WriteByte(char);
+
 	}
 }
 
