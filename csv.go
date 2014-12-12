@@ -304,14 +304,17 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	lineEndIndex := 0
 	inLineEnd := true
 
+	inHeader := true
 	columnCount := 1
-	inSelected := isSelected(parameters, columnCount, "")
+	selected := make([]bool, 0, 20)
+	selected = append(selected, isSelected(parameters, columnCount, ""))
 	haveWritten := false
 
 charLoop:
 	for {
 		// TODO: obey selection of columns by name
 		// TODO: flush temporarily read delimiters
+		// TODO: need to cache isSelected calls
 
 		char, err := bufferedInput.ReadByte()
 
@@ -325,8 +328,10 @@ charLoop:
 			inInputDelimiter = false
 			inputDelimiterIndex = 0
 			columnCount += 1
-			inSelected = isSelected(parameters, columnCount, "")
-			if inSelected && haveWritten {
+			if inHeader {
+				selected = append(selected, isSelected(parameters, columnCount, ""))
+			}
+			if selected[columnCount-1] && haveWritten {
 				bufferedOutput.Write(outputDelimiter)
 			}
 		}
@@ -336,7 +341,7 @@ charLoop:
 			inLineEnd = false
 			lineEndIndex = 0
 			columnCount = 1
-			inSelected = isSelected(parameters, columnCount, "")
+			inHeader = false
 		}
 
 		if char == DQUOTE {
@@ -357,7 +362,7 @@ charLoop:
 
 		inputDelimiterIndex = 0
 		lineEndIndex = 0
-		if inSelected {
+		if selected[columnCount-1] {
 			bufferedOutput.WriteByte(char)
 			haveWritten = true
 		}
