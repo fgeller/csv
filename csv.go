@@ -258,13 +258,13 @@ func parseRanges(rawRanges string) []Range {
 	return ranges
 }
 
-func isSelected(parameters *parameters, field int, word string) bool {
+func isSelected(parameters *parameters, column int, name string) bool {
 	if len(parameters.ranges) == 0 && len(parameters.names) == 0 {
 		return true
 	}
 
 	for _, aRange := range parameters.ranges {
-		contained := aRange.Contains(field)
+		contained := aRange.Contains(column)
 		switch {
 		case !parameters.complement && contained:
 			return true
@@ -277,9 +277,9 @@ func isSelected(parameters *parameters, field int, word string) bool {
 		wrappedName := fmt.Sprintf("%v%v%v", string(DQUOTE), name, string(DQUOTE))
 
 		switch {
-		case !parameters.complement && (name == word || wrappedName == word):
+		case !parameters.complement && (name == name || wrappedName == name):
 			return true
-		case parameters.complement && (name != word && wrappedName != word):
+		case parameters.complement && (name != name && wrappedName != name):
 			return true
 		}
 	}
@@ -304,26 +304,39 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	lineEndIndex := 0
 	inLineEnd := true
 
+	columnCount := 1
+	inSelected := isSelected(parameters, columnCount, "")
+	haveWritten := false
+
 charLoop:
 	for {
-		char, err := bufferedInput.ReadByte()
-		if err != nil {
-			break
-		}
-
-		// TODO: obey selection of columns by number
 		// TODO: obey selection of columns by name
 		// TODO: flush temporarily read delimiters
 
+		char, err := bufferedInput.ReadByte()
+
+		if err != nil {
+			bufferedOutput.Write(lineEnd)
+			haveWritten = true
+			break
+		}
+
 		if inInputDelimiter && inputDelimiterIndex == len(inputDelimiter) {
-			bufferedOutput.Write(outputDelimiter)
 			inInputDelimiter = false
 			inputDelimiterIndex = 0
+			columnCount += 1
+			inSelected = isSelected(parameters, columnCount, "")
+			if inSelected && haveWritten {
+				bufferedOutput.Write(outputDelimiter)
+			}
 		}
 		if inLineEnd && lineEndIndex == len(lineEnd) {
 			bufferedOutput.Write(lineEnd)
+			haveWritten = false
 			inLineEnd = false
 			lineEndIndex = 0
+			columnCount = 1
+			inSelected = isSelected(parameters, columnCount, "")
 		}
 
 		if char == DQUOTE {
@@ -344,7 +357,10 @@ charLoop:
 
 		inputDelimiterIndex = 0
 		lineEndIndex = 0
-		bufferedOutput.WriteByte(char);
+		if inSelected {
+			bufferedOutput.WriteByte(char)
+			haveWritten = true
+		}
 
 	}
 }

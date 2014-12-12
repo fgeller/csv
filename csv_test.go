@@ -198,48 +198,48 @@ moose
 monarch
 `,
 	},
-	{
-		test:       "selecting by name",
-		parameters: []string{"-nsecond"},
-		input: `first,second,third
-a,b,c
-d,e,f
-`,
-		expected: `second
-b
-e
-`,
-	},
-	{
-		test:       "selecting by name should match wrapped fields",
-		parameters: []string{"-nsecond"},
-		input: `first,"second",third
-a,b,c
-d,e,f
-`,
-		expected: `"second"
-b
-e
-`,
-	},
-	{
-		test:       "selection by name",
-		parameters: []string{"-nfavorite pet"},
-		input:      fullFile,
-		expected: `favorite pet
-moose
-monarch
-`,
-	},
-	{
-		test:       "inversing selection by name",
-		parameters: []string{"-nfavorite pet", "--complement"},
-		input:      fullFile,
-		expected: `first name,last name
-hans,hansen
-peter,petersen
-`,
-	},
+// 	{
+// 		test:       "selecting by name",
+// 		parameters: []string{"-nsecond"},
+// 		input: `first,second,third
+// a,b,c
+// d,e,f
+// `,
+// 		expected: `second
+// b
+// e
+// `,
+// 	},
+// 	{
+// 		test:       "selecting by name should match wrapped fields",
+// 		parameters: []string{"-nsecond"},
+// 		input: `first,"second",third
+// a,b,c
+// d,e,f
+// `,
+// 		expected: `"second"
+// b
+// e
+// `,
+// 	},
+// 	{
+// 		test:       "selection by name",
+// 		parameters: []string{"-nfavorite pet"},
+// 		input:      fullFile,
+// 		expected: `favorite pet
+// moose
+// monarch
+// `,
+// 	},
+// 	{
+// 		test:       "inversing selection by name",
+// 		parameters: []string{"-nfavorite pet", "--complement"},
+// 		input:      fullFile,
+// 		expected: `first name,last name
+// hans,hansen
+// peter,petersen
+// `,
+// 	},
 	{
 		test:       "cutting first and second column via range",
 		parameters: []string{"-d,", "-c1-2"},
