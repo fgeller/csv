@@ -1,7 +1,6 @@
 package main
 
 import "os"
-import "bytes"
 import "fmt"
 import "bufio"
 import "io"
