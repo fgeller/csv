@@ -312,6 +312,7 @@ charLoop:
 		}
 
 		// TODO: save first line to set selected for selection by header
+		// TODO: flush temporarily read delimiters
 
 		if inInputDelimiter && inputDelimiterIndex == len(inputDelimiter) {
 			bufferedOutput.Write(outputDelimiter)
