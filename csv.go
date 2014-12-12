@@ -324,12 +324,8 @@ charLoop:
 			lineEndIndex = 0
 		}
 
-		switch {
-		case !inEscaped && char == DQUOTE:
-			inEscaped = true
-
-		case inEscaped && char == DQUOTE:
-			inEscaped = false
+		if char == DQUOTE {
+			inEscaped = !inEscaped
 		}
 
 		if !inEscaped && char == inputDelimiter[inputDelimiterIndex] {
