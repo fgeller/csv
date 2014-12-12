@@ -311,7 +311,8 @@ charLoop:
 			break
 		}
 
-		// TODO: save first line to set selected for selection by header
+		// TODO: obey selection of columns by number
+		// TODO: obey selection of columns by name
 		// TODO: flush temporarily read delimiters
 
 		if inInputDelimiter && inputDelimiterIndex == len(inputDelimiter) {
