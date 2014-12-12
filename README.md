@@ -1,6 +1,8 @@
 csv -- cut for CSV files.
 ========================
 
+N.B. I'm still playing with the main loop, things are doomed to fail ;)
+
 Print selected comma separated values from each file to standard output.
 
 csv is modeled after GNU coreutils' cut, but with CSV files in mind. The goal is
