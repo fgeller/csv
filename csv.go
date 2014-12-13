@@ -292,6 +292,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	bufferedOutput := bufio.NewWriterSize(output, 4096)
 	defer bufferedOutput.Flush()
 
+	// idea: limit to 1 byte
 	inputDelimiter := []byte(parameters.inputDelimiter)
 	inputDelimiterLength := len(inputDelimiter)
 	outputDelimiter := []byte(parameters.outputDelimiter)
@@ -299,12 +300,11 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	lineEnd := []byte(parameters.lineEnd)
 	lineEndLength := len(lineEnd)
 
+	// idea: when inEscaped, just skip to write out
 	inEscaped := false
 
 	inputDelimiterIndex := 0
-	inInputDelimiter := false
 	lineEndIndex := 0
-	inLineEnd := true
 
 	inHeader := true
 	columnCount := 1
@@ -319,14 +319,13 @@ charLoop:
 
 		char, err := bufferedInput.ReadByte()
 
+		// move to least called place
 		if err != nil {
 			bufferedOutput.Write(lineEnd)
-			haveWritten = true
 			break
 		}
 
-		if inInputDelimiter && inputDelimiterIndex == inputDelimiterLength {
-			inInputDelimiter = false
+		if inputDelimiterIndex == inputDelimiterLength {
 			inputDelimiterIndex = 0
 			columnCount += 1
 			if inHeader {
@@ -336,10 +335,10 @@ charLoop:
 				bufferedOutput.Write(outputDelimiter)
 			}
 		}
-		if inLineEnd && lineEndIndex == lineEndLength {
+
+		if lineEndIndex == lineEndLength {
 			bufferedOutput.Write(lineEnd)
 			haveWritten = false
-			inLineEnd = false
 			lineEndIndex = 0
 			columnCount = 1
 			inHeader = false
@@ -350,13 +349,11 @@ charLoop:
 		}
 
 		if !inEscaped && char == inputDelimiter[inputDelimiterIndex] {
-			inInputDelimiter = true
 			inputDelimiterIndex += 1
 			continue charLoop
 		}
 
 		if !inEscaped && char == lineEnd[lineEndIndex] {
-			inLineEnd = true
 			lineEndIndex += 1
 			continue charLoop
 		}
