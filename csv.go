@@ -293,9 +293,11 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	defer bufferedOutput.Flush()
 
 	inputDelimiter := []byte(parameters.inputDelimiter)
+	inputDelimiterLength := len(inputDelimiter)
 	outputDelimiter := []byte(parameters.outputDelimiter)
 
 	lineEnd := []byte(parameters.lineEnd)
+	lineEndLength := len(lineEnd)
 
 	inEscaped := false
 
@@ -323,7 +325,7 @@ charLoop:
 			break
 		}
 
-		if inInputDelimiter && inputDelimiterIndex == len(inputDelimiter) {
+		if inInputDelimiter && inputDelimiterIndex == inputDelimiterLength {
 			inInputDelimiter = false
 			inputDelimiterIndex = 0
 			columnCount += 1
@@ -334,7 +336,7 @@ charLoop:
 				bufferedOutput.Write(outputDelimiter)
 			}
 		}
-		if inLineEnd && lineEndIndex == len(lineEnd) {
+		if inLineEnd && lineEndIndex == lineEndLength {
 			bufferedOutput.Write(lineEnd)
 			haveWritten = false
 			inLineEnd = false
