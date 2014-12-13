@@ -314,7 +314,6 @@ charLoop:
 	for {
 		// TODO: obey selection of columns by name
 		// TODO: flush temporarily read delimiters
-		// TODO: need to cache isSelected calls
 
 		char, err := bufferedInput.ReadByte()
 
