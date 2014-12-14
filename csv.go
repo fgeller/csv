@@ -289,11 +289,10 @@ func isSelected(parameters *parameters, field int, word string) bool {
 }
 
 func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
-	bufferedInput := bufio.NewReaderSize(input, 4096)
-	bufferedOutput := bufio.NewWriterSize(output, 4096)
+	bufferedInput := bufio.NewReaderSize(input, 4096*1000)
+	bufferedOutput := bufio.NewWriterSize(output, 4096*1000)
 	defer bufferedOutput.Flush()
 
-	buffer := make([]byte, 4096*1000)
 	word := make([]byte, 0, 30)
 	selected := make([]bool, 0, 20)
 
@@ -331,45 +330,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	}
 
 	for {
-		count, err := bufferedInput.Read(buffer)
-
-		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
-			char := buffer[bufferIndex]
-
-			if char == DQUOTE {
-				inEscaped = !inEscaped
-			}
-
-			switch {
-
-			case !inEscaped && char == inputDelimiterEndByte:
-				word = append(word, char)
-				if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
-					word = word[:len(word)-len(inputDelimiter)]
-					writeOut()
-					wordCount += 1
-				}
-
-			case !inEscaped && char == lineEndByte:
-				word = append(word, char)
-
-				if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
-					word = word[:len(word)-len(lineEnd)]
-					writeOut()
-					if firstWordWritten {
-						bufferedOutput.Write(lineEnd)
-					}
-					inHeader = false
-					firstWordWritten = false
-					wordCount = 1
-				}
-
-			case true:
-				word = append(word, char)
-			}
-
-		}
-
+		char, err := bufferedInput.ReadByte()
 		if err != nil {
 			if len(word) > 0 {
 				writeOut()
@@ -377,6 +338,39 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 			}
 			break
 		}
+
+		if char == DQUOTE {
+			inEscaped = !inEscaped
+		}
+
+		switch {
+
+		case !inEscaped && char == inputDelimiterEndByte:
+			word = append(word, char)
+			if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
+				word = word[:len(word)-len(inputDelimiter)]
+				writeOut()
+				wordCount += 1
+			}
+
+		case !inEscaped && char == lineEndByte:
+			word = append(word, char)
+
+			if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
+				word = word[:len(word)-len(lineEnd)]
+				writeOut()
+				if firstWordWritten {
+					bufferedOutput.Write(lineEnd)
+				}
+				inHeader = false
+				firstWordWritten = false
+				wordCount = 1
+			}
+
+		case true:
+			word = append(word, char)
+		}
+
 	}
 }
 
