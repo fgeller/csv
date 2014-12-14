@@ -310,7 +310,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 	firstWordWritten := false
 	wordCount := 1
 
-	writeOut := func(eol bool) bool {
+	writeOut := func() bool {
 		if inHeader {
 			selected = append(selected, isSelected(parameters, wordCount, string(word)))
 		}
@@ -350,7 +350,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 				word = append(word, char)
 				if bytes.Equal(word[len(word)-len(inputDelimiter):], inputDelimiter) {
 					word = word[:len(word)-len(inputDelimiter)]
-					writeOut(false)
+					writeOut()
 					wordCount += 1
 				}
 
@@ -359,7 +359,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 				if bytes.Equal(word[len(word)-len(lineEnd):], lineEnd) {
 					word = word[:len(word)-len(lineEnd)]
-					writeOut(true)
+					writeOut()
 					if firstWordWritten {
 						bufferedOutput.Write(lineEnd)
 					}
@@ -376,7 +376,7 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 
 		if err != nil {
 			if len(word) > 0 {
-				writeOut(true)
+				writeOut()
 				wordCount = 0
 				bufferedOutput.Write(lineEnd)
 			}
