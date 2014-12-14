@@ -336,15 +336,11 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 		for bufferIndex := 0; bufferIndex < count; bufferIndex += 1 {
 			char := buffer[bufferIndex]
 
+			if char == DQUOTE {
+				inEscaped = !inEscaped
+			}
+
 			switch {
-
-			case !inEscaped && char == DQUOTE:
-				inEscaped = true
-				word = append(word, char)
-
-			case inEscaped && char == DQUOTE:
-				inEscaped = false
-				word = append(word, char)
 
 			case !inEscaped && char == inputDelimiterEndByte:
 				word = append(word, char)
