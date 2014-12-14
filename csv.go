@@ -373,7 +373,6 @@ func cutFile(input io.Reader, output io.Writer, parameters *parameters) {
 		if err != nil {
 			if len(word) > 0 {
 				writeOut()
-				wordCount = 0
 				bufferedOutput.Write(lineEnd)
 			}
 			break
